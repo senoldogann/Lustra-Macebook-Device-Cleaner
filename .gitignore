@@ -1,0 +1,164 @@
+# ============================================
+# MacCleaner - .gitignore
+# Swift/Xcode macOS Project
+# ============================================
+
+# ============================================
+# Xcode Build Artifacts
+# ============================================
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# ============================================
+# Xcode User State (DO NOT COMMIT!)
+# ============================================
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ============================================
+# Swift Package Manager
+# ============================================
+.build/
+Packages/
+xcuserdata/
+Package.resolved
+.swiftpm/
+*.xcworkspace/xcshareddata/swiftpm/
+
+# ============================================
+# CocoaPods (if used)
+# ============================================
+Pods/
+*.xcworkspace
+Podfile.lock
+
+# ============================================
+# Carthage (if used)
+# ============================================
+Carthage/Build/
+Carthage/Checkouts/
+
+# ============================================
+# macOS System Files
+# ============================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# ============================================
+# Sensitive / Credentials (CRITICAL!)
+# ============================================
+*.pem
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+*.provisionprofile
+Secrets/
+secrets/
+credentials/
+*.xcconfig.local
+.env
+.env.*
+!.env.example
+
+# ============================================
+# API Keys & Tokens
+# ============================================
+**/APIKeys.swift
+**/Secrets.swift
+**/Config.local.swift
+
+# ============================================
+# Archives & Distribution
+# ============================================
+*.app
+*.ipa
+*.appex
+*.xcarchive
+*.pkg
+*.dmg
+
+# ============================================
+# Logs & Debug
+# ============================================
+*.log
+*.crash
+logs/
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+
+# ============================================
+# Test & Coverage
+# ============================================
+*.gcno
+*.gcda
+*.gcov
+coverage/
+.coverage
+*.coveragedata
+
+# ============================================
+# Playgrounds
+# ============================================
+timeline.xctimeline
+playground.xcworkspace
+
+# ============================================
+# Fastlane
+# ============================================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+fastlane/README.md
+
+# ============================================
+# Firebase / Analytics (if used)
+# ============================================
+GoogleService-Info.plist
+google-services.json
+
+# ============================================
+# Agent / AI Tools (Optional - keep clean)
+# ============================================
+.gemini/
+.cursor/
+
+# ============================================
+# Project Data Files (Large/Generated)
+# ============================================
+data/*.json
+!data/sample.json
+
+agent/
+docs/
