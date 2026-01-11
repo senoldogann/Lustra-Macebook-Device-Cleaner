@@ -56,7 +56,7 @@ class UpdateService: ObservableObject {
     
     private func validateVersion(_ remoteVersion: AppVersion) {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        logger.info("Comparing versions - Remote: \(remoteVersion.version), Local: \(currentVersion)")
+        logger.info("Comparing versions - Remote: '\(remoteVersion.version)', Local: '\(currentVersion)'")
         
         if remoteVersion.version.compare(currentVersion, options: .numeric) == .orderedDescending {
             logger.notice("New update available: \(remoteVersion.version)")

@@ -1,6 +1,6 @@
 {
-    "version": "1.4.2",
-    "title": "Lustra v1.4.2 Available",
-    "notes": "• Fix: Critical Update Mechanism Improvement 🔄\n• Fix: App Restart Loop Resolved ✅\n• Fix: Improved Smart Check Logic 🪄\n• Performance Enhancements ⚡",
+    "version": "1.4.3",
+    "title": "Lustra v1.4.3 Available",
+    "notes": "• Final Fix: Corrected internal version number mismatch 🏷️\n• Now properly identifies itself as the latest version.\n• Update mechanism fully verified ✅",
     "downloadURL": "https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/releases/latest/download/Lustra_Installer.dmg"
 }
