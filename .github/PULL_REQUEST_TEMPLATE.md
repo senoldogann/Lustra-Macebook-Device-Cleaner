@@ -1,15 +1,15 @@
 # Pull Request
 
-## 📝 Ne Yapıldı?
-<!-- Yaptığınız değişikliği kısaca özetleyin -->
+## 📝 What Was Done?
+<!-- Briefly summarize your changes -->
 
-## 🔗 İlgili Issue
-<!-- Varsa ilgili issue numarası (Örn: Closes #12) -->
+## 🔗 Related Issue
+<!-- If applicable, link the issue number (e.g., Closes #12) -->
 
-## 📸 Ekran Görüntüleri (Opsiyonel)
-<!-- Görsel bir değişiklik ise buraya resim/gif ekleyin -->
+## 📸 Screenshots (Optional)
+<!-- If there are visual changes, add images/GIFs here -->
 
-## ✅ Kontrol Listesi
-- [ ] SwiftLint hataları giderildi mi?
-- [ ] Proje sorunsuz derleniyor mu (Build)?
-- [ ] Testler (varsa) geçiyor mu?
+## ✅ Checklist
+- [ ] SwiftLint errors resolved?
+- [ ] Project builds successfully?
+- [ ] Tests (if applicable) pass?
