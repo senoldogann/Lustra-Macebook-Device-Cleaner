@@ -126,6 +126,8 @@ temp/
 coverage/
 .coverage
 *.coveragedata
+TestResults/
+TestResults.xcresult/
 
 # ============================================
 # Playgrounds
