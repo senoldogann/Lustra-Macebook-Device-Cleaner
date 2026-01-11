@@ -62,7 +62,10 @@ final class MainViewModel: ObservableObject {
     
     private let scanner = DiskScanner.shared
     private let ollamaService = OllamaService.shared
+    private let updateService = UpdateService.shared
     private var cancellables = Set<AnyCancellable>()
+    
+    @Published var updateAvailable: AppVersion?
     
     // MARK: - Initialization
     init() {
@@ -98,6 +101,12 @@ final class MainViewModel: ObservableObject {
         
         // Initial permission check
         self.hasFullDiskAccess = PermissionManager.shared.hasFullDiskAccess
+        
+        // Listen for updates
+        updateService.$latestVersion
+            .receive(on: RunLoop.main)
+            .assign(to: \.updateAvailable, on: self)
+            .store(in: &cancellables)
     }
     
     private func hasValidCache() -> Bool {

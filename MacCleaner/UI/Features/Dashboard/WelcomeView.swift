@@ -48,6 +48,14 @@ struct WelcomeView: View {
                     
                     Spacer()
                     
+                    // Update Notification
+                    if let update = viewModel.updateAvailable {
+                        UpdateBanner(version: update)
+                            .padding(.leading, 180)
+                            .padding(.bottom, 20)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                    
                     // Center Info Area
                     VStack(alignment: .leading, spacing: 32) {
                         VStack(alignment: .leading, spacing: 12) {
@@ -378,6 +386,65 @@ struct FeatureCard: View {
                 isHovered = hovering
             }
         }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+struct UpdateBanner: View {
+    let version: AppVersion
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "4A90E2").opacity(0.1))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundColor(Color(hex: "4A90E2"))
+                    .font(.system(size: 18))
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("New Version Available: \(version.version)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(AppTheme.primaryText)
+                Text(version.notes)
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                if let url = URL(string: version.downloadURL) {
+                    NSWorkspace.shared.open(url)
+                }
+            }) {
+                Text("Update")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(hex: "4A90E2"))
+                    .cornerRadius(16)
+                    .shadow(color: Color(hex: "4A90E2").opacity(0.3), radius: 5)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(12)
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(hex: "4A90E2").opacity(0.3), lineWidth: 1)
+        )
+        .frame(maxWidth: 400)
     }
 }
 
