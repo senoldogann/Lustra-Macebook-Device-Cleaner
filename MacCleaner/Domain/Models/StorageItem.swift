@@ -14,6 +14,7 @@ struct StorageItem: Identifiable, Hashable, Codable, Sendable {
     // AI Analysis
     var analysisStatus: AnalysisStatus = .notAnalyzed
     var analysisDescription: String = ""
+    var analysisConsequences: String = "" // Added for detailed AI consequences
     var safeToDelete: Bool = false
     
     init(url: URL, name: String, size: Int64, modificationDate: Date?, isDirectory: Bool) {

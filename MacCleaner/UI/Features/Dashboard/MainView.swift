@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Main window with FreeUpMyMac-style layout
+// MARK: - Main View
+
 struct MainView: View {
     @StateObject private var viewModel = MainViewModel()
     @State private var hasAppeared = false
@@ -12,20 +13,21 @@ struct MainView: View {
                 WelcomeView(viewModel: viewModel)
             case .results:
                 HStack(spacing: 0) {
-                    SidebarView(viewModel: viewModel)
-                        .frame(width: 260) // Fixed width for sidebar
+                    PremiumSidebarView(viewModel: viewModel)
+                        .frame(width: 280)
                     
-                    Divider()
-                        .background(AppTheme.darkerGray)
+                    Rectangle()
+                        .fill(AppTheme.darkerGray.opacity(0.5))
+                        .frame(width: 1)
                     
-                    ContentAreaView(viewModel: viewModel)
+                    PremiumContentAreaView(viewModel: viewModel)
                 }
-                .frame(minWidth: 900, minHeight: 600)
-                .ignoresSafeArea() // Critical for edge-to-edge layout
+                .frame(minWidth: 1000, minHeight: 700)
+                .ignoresSafeArea()
             }
         }
         .background(AppTheme.background)
-        .preferredColorScheme(.dark) // Force dark mode
+        .preferredColorScheme(.dark)
         .confirmationDialog(
             "Are you sure?",
             isPresented: $viewModel.showDeleteConfirmation,
@@ -41,7 +43,7 @@ struct MainView: View {
             if let item = viewModel.itemToDelete {
                 Text("Are you sure you want to move '\(item.name)' to the Trash?")
             } else {
-                Text("This will move \(viewModel.selectedItemsCount) items (\(viewModel.formattedSelectedSize)) to the Trash. You can restore them from the Trash if needed.")
+                Text("This will move \(viewModel.selectedItemsCount) items (\(viewModel.formattedSelectedSize)) to the Trash.")
             }
         }
         .alert(item: $viewModel.alertItem) { alert in
@@ -51,295 +53,533 @@ struct MainView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .overlay(alignment: .topLeading) {
-            if let item = viewModel.hoveredItem {
-                TechExpertTooltip(item: item)
-                    .position(x: viewModel.tooltipPosition.x + 150, y: viewModel.tooltipPosition.y) // Adjusting for tooltip center width
-            }
-        }
     }
 }
 
-// MARK: - Sidebar
+// MARK: - Premium Sidebar
 
-struct SidebarView: View {
+struct PremiumSidebarView: View {
     @ObservedObject var viewModel: MainViewModel
+    @State private var hoveredCategoryId: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Text("Lustra")
-                    .font(.headline)
-                    .foregroundColor(AppTheme.secondaryText)
-                Spacer()
-                if viewModel.isScanning {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 16, height: 16)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 45) // Pushing down to clear traffic lights
-            .padding(.bottom, 10)
-            
-            // Category List
-            List(viewModel.categories, id: \.id, selection: Binding(
-                get: { viewModel.selectedCategory?.id },
-                set: { newId in
-                    if let id = newId, let cat = viewModel.categories.first(where: { $0.id == id }) {
-                        viewModel.selectCategory(cat)
+            // Premium Header with Glassmorphism
+            VStack(spacing: 8) {
+                HStack {
+                    // App Logo/Icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.accent, AppTheme.accent.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 36, height: 36)
+                        
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Text("Lustra")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.primaryText)
+                    
+                    Spacer()
+                    
+                    if viewModel.isScanning {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(AppTheme.accent)
                     }
                 }
-            )) { category in
-                CategoryRow(category: category, isSelected: viewModel.selectedCategory?.id == category.id)
-                    .tag(category.id)
+                
+                // Disk Usage Mini Indicator
+                if viewModel.totalDiskSize > 0 {
+                    DiskUsageMiniView(
+                        used: viewModel.usedDiskSize,
+                        total: viewModel.totalDiskSize
+                    )
+                }
             }
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 20)
+            .padding(.top, 50)
+            .padding(.bottom, 16)
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.darkerGray.opacity(0.8), AppTheme.background],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             
-            Divider()
+            // Category List
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(viewModel.categories, id: \.id) { category in
+                        PremiumCategoryRow(
+                            category: category,
+                            isSelected: viewModel.selectedCategory?.id == category.id,
+                            isHovered: hoveredCategoryId == category.id
+                        )
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                viewModel.selectCategory(category)
+                            }
+                        }
+                        .onHover { isHovering in
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                hoveredCategoryId = isHovering ? category.id : nil
+                            }
+                            if isHovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+            }
             
-            // Discard Section
-            DiscardSectionView(viewModel: viewModel)
+            Spacer()
+            
+            // Premium Discard Section
+            PremiumDiscardSection(viewModel: viewModel)
         }
         .frame(maxHeight: .infinity)
         .background(AppTheme.sidebarBackground)
-        .ignoresSafeArea()
     }
 }
 
-struct CategoryRow: View {
-    let category: StorageCategory
-    let isSelected: Bool
+struct DiskUsageMiniView: View {
+    let used: Int64
+    let total: Int64
+    
+    private var usagePercentage: Double {
+        guard total > 0 else { return 0 }
+        return Double(used) / Double(total)
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(isSelected ? AppTheme.primaryText : AppTheme.accent)
-                    .frame(width: 24)
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(AppTheme.darkGray.opacity(0.5))
+                    
+                    // Used portion
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.accent, AppTheme.accent.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * usagePercentage)
+                }
+            }
+            .frame(height: 6)
             
-            Text(category.name)
-                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+            HStack {
+                Text("\(ByteCountFormatter.string(fromByteCount: used, countStyle: .file)) used")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(AppTheme.secondaryText)
+                
+                Spacer()
+                
+                Text("\(ByteCountFormatter.string(fromByteCount: total - used, countStyle: .file)) free")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+            }
+        }
+    }
+}
+
+struct PremiumCategoryRow: View {
+    let category: StorageCategory
+    let isSelected: Bool
+    let isHovered: Bool
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            // Left accent bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(isSelected ? AppTheme.accent : Color.clear)
+                .frame(width: 4)
+                .animation(.spring(response: 0.3), value: isSelected)
+            
+            // Icon with background
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(
+                        isSelected
+                            ? AppTheme.accent.opacity(0.2)
+                            : (isHovered ? AppTheme.darkGray.opacity(0.5) : Color.clear)
+                    )
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: CategoryPresenter.icon(for: category.id))
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(isSelected ? AppTheme.accent : AppTheme.secondaryText)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(category.name)
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? AppTheme.primaryText : AppTheme.secondaryText)
+                
+                if category.size > 0 {
+                    Text(category.formattedSize)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(isSelected ? AppTheme.accent : AppTheme.secondaryText.opacity(0.6))
+                }
+            }
             
             Spacer()
             
             if category.isScanning {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: 12, height: 12)
-                    .padding(.trailing, 4)
-            }
-            
-            if category.size > 0 {
-                Text(category.formattedSize)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(isSelected ? .white.opacity(0.9) : AppTheme.secondaryText)
-            } else if !category.isScanning {
-                // Only show empty state if not scanning and size is 0
-                Text("--")
-                    .font(.system(size: 12))
-                    .foregroundColor(AppTheme.secondaryText)
+                    .tint(AppTheme.accent)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 10)
         .padding(.horizontal, 8)
-        .cornerRadius(6)
-        .onHover { inside in
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    isSelected
+                        ? AppTheme.darkerGray
+                        : (isHovered ? AppTheme.darkerGray.opacity(0.5) : Color.clear)
+                )
+        )
+        .contentShape(Rectangle())
+    }
+}
+
+struct PremiumDiscardSection: View {
+    @ObservedObject var viewModel: MainViewModel
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Divider
+            Rectangle()
+                .fill(AppTheme.darkerGray)
+                .frame(height: 1)
+            
+            VStack(spacing: 12) {
+                // Header
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        viewModel.isDiscardSectionExpanded.toggle()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(viewModel.selectedItems.isEmpty ? AppTheme.secondaryText : AppTheme.accent)
+                        
+                        Text("Discard")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppTheme.primaryText)
+                        
+                        if !viewModel.selectedItems.isEmpty {
+                            Text("\(viewModel.selectedItemsCount)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(AppTheme.accent))
+                        }
+                        
+                        Spacer()
+                        
+                        if !viewModel.selectedItems.isEmpty {
+                            Text(viewModel.formattedSelectedSize)
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundColor(AppTheme.secondaryText)
+                        }
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .rotationEffect(.degrees(viewModel.isDiscardSectionExpanded ? 90 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { inside in
+                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+                
+                // Expanded Content
+                if viewModel.isDiscardSectionExpanded {
+                    VStack(spacing: 12) {
+                        if viewModel.selectedItems.isEmpty {
+                            HStack {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                                Text("No items selected")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
+                        } else {
+                            // Selected items preview
+                            VStack(spacing: 8) {
+                                ForEach(viewModel.allSelectedItems.prefix(3)) { item in
+                                    HStack(spacing: 10) {
+                                        Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(Color(hex: item.color))
+                                        
+                                        Text(item.name)
+                                            .font(.system(size: 12))
+                                            .lineLimit(1)
+                                            .foregroundColor(AppTheme.secondaryText)
+                                        
+                                        Spacer()
+                                        
+                                        Text(item.formattedSize)
+                                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                                            .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                                    }
+                                }
+                                
+                                if viewModel.allSelectedItems.count > 3 {
+                                    Text("+\(viewModel.allSelectedItems.count - 3) more")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                                }
+                            }
+                            
+                            // Delete Button
+                            Button(action: { viewModel.confirmDelete() }) {
+                                HStack {
+                                    Image(systemName: "trash.fill")
+                                        .font(.system(size: 12))
+                                    Text("Delete \(viewModel.selectedItemsCount) items")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [AppTheme.accent, AppTheme.accent.opacity(0.8)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .onHover { inside in
+                                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                            }
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(16)
+            .background(AppTheme.darkerGray.opacity(0.3))
         }
     }
 }
 
-struct DiscardSectionView: View {
+// MARK: - Premium Content Area
+
+struct PremiumContentAreaView: View {
     @ObservedObject var viewModel: MainViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    viewModel.isDiscardSectionExpanded.toggle()
-                }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "trash")
-                        .foregroundColor(viewModel.selectedItems.isEmpty ? .secondary : AppTheme.accent)
+            // Premium Header
+            PremiumHeaderView(viewModel: viewModel)
+            
+            // Category Info Card
+            if let category = viewModel.selectedCategory {
+                PremiumCategoryInfoCard(category: category, viewModel: viewModel)
+            }
+            
+            // Items List
+            PremiumItemsListView(viewModel: viewModel)
+            
+            // Bottom Panel
+            PremiumBottomPanelView(viewModel: viewModel)
+        }
+        .background(AppTheme.background)
+    }
+}
+
+struct PremiumHeaderView: View {
+    @ObservedObject var viewModel: MainViewModel
+    
+    var body: some View {
+        HStack {
+            // Breadcrumb
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                
+                Image(systemName: "house.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText)
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                
+                Text(viewModel.selectedCategory?.name ?? "Home")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppTheme.primaryText)
+            }
+            
+            Spacer()
+            
+            // Selection Toolbar
+            if !viewModel.selectedItems.isEmpty {
+                HStack(spacing: 12) {
+                    Text("\(viewModel.selectedItemsCount) selected")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppTheme.secondaryText)
                     
-                    Text("Discard")
-                        .font(.system(size: 14, weight: .semibold))
-                    
-                    if !viewModel.selectedItems.isEmpty {
-                        Text("\(viewModel.selectedItemsCount)")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.red.opacity(0.8))
-                            .clipShape(Capsule())
-                        
-                        Spacer()
-                        
-                        Text(viewModel.formattedSelectedSize)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Spacer()
+                    // Smart Check Button
+                    Button(action: { viewModel.analyzeSelectedItems() }) {
+                        HStack(spacing: 6) {
+                            if viewModel.isAnalyzing {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 11))
+                            }
+                            Text("Smart Check")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(AppTheme.primaryText)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(AppTheme.darkerGray)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(AppTheme.darkGray, lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isAnalyzing)
+                    .onHover { inside in
+                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                     }
                     
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(viewModel.isDiscardSectionExpanded ? 90 : 0))
+                    // Delete Button
+                    Button(action: { viewModel.confirmDelete() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 11))
+                            Text("Delete")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(AppTheme.accent)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { inside in
+                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
+                    
+                    // Clear Selection
+                    Button(action: { viewModel.clearSelection() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .frame(width: 24, height: 24)
+                            .background(Circle().fill(AppTheme.darkerGray))
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { inside in
+                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .contentShape(Rectangle())
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(AppTheme.cardBackground.opacity(0.8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .strokeBorder(AppTheme.darkGray.opacity(0.5), lineWidth: 1)
+                        )
+                )
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .padding(.top, 30) // Account for traffic lights
+        .background(AppTheme.background)
+    }
+}
+
+struct PremiumCategoryInfoCard: View {
+    let category: StorageCategory
+    @ObservedObject var viewModel: MainViewModel
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(category.name)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(AppTheme.primaryText)
+                
+                Text(getCategoryDescription(category.id))
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+            
+            // New Scan Button
+            Button(action: { viewModel.startFullScan() }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("New Scan")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(AppTheme.accent)
+                )
             }
             .buttonStyle(.plain)
             .onHover { inside in
                 if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
             }
-            
-            if viewModel.isDiscardSectionExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    if viewModel.selectedItems.isEmpty {
-                        Text("No items selected")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 10)
-                    } else {
-                        // Scrollable list of items to discard
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(viewModel.allSelectedItems.prefix(5)) { item in
-                                HStack(spacing: 10) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(hex: item.color).opacity(0.2))
-                                            .frame(width: 28, height: 28)
-                                        Image(systemName: "folder.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(Color(hex: item.color))
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.name)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .lineLimit(1)
-                                        Text(item.formattedSize)
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
-                            }
-                            
-                            if viewModel.allSelectedItems.count > 5 {
-                                Text("+\(viewModel.allSelectedItems.count - 5) more items")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal)
-                            }
-                        }
-                        
-                        // Large Delete button
-                        Button(action: {
-                            viewModel.confirmDelete()
-                        }) {
-                            Text("Delete \(viewModel.selectedItemsCount) items")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(AppTheme.accent)
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal)
-                        .padding(.top, 4)
-                        .onHover { inside in
-                            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                        }
-                    }
-                }
-                .padding(.bottom, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Content Area
-
-struct ContentAreaView: View {
-    @ObservedObject var viewModel: MainViewModel
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header with breadcrumb and action bar
-            HeaderView(viewModel: viewModel)
-            
-            // Category Title
-            if let category = viewModel.selectedCategory {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(category.name)
-                            .font(.title)
-                            .fontWeight(.bold)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            viewModel.startFullScan()
-                        }) {
-                            Label("New Scan", systemImage: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.accent)
-                        .onHover { inside in
-                            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                        }
-                    }
-                    
-                    Text(getCategoryDescription(category.id))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-            }
-            
-            // Items List Header
-            HStack {
-                Text("Name")
-                    .frame(width: 200, alignment: .leading)
-                    .padding(.leading, 20) // Match ItemRow padding
-                Text("Smart Check")
-                    .frame(width: 200, alignment: .leading)
-                Spacer()
-                Text("Modified")
-                    .frame(width: 100, alignment: .trailing)
-                Text("Size")
-                    .frame(width: 80, alignment: .trailing)
-                    .padding(.trailing, 20) // Added padding to header
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(AppTheme.background)
-            
-            // Items List
-            ItemsListView(viewModel: viewModel)
-            
-            Divider()
-            
-            // Bottom Section: Treemap + Largest Files
-            BottomPanelView(viewModel: viewModel)
-        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
     }
     
     private func getCategoryDescription(_ id: String) -> String {
@@ -347,605 +587,595 @@ struct ContentAreaView: View {
         case "system_junk":
             return "System Data is often full of confusing cache files. We've identified these as safe to remove to reclaim free space."
         case "user_library":
-            return "Contains app data and settings. Use Smart Check to translate technical names into plain English before deciding."
+            return "Contains app data and settings. Use Smart Check to translate technical names into plain English."
         case "downloads":
             return "Files downloaded from the internet. Great place to find forgotten giants taking up space."
         case "desktop":
             return "Files on your Desktop. Rapidly access and organize your workspace."
         case "documents":
-            return "Your personal documents. Review carefully."
+            return "Your personal documents. Review carefully before removing."
+        case "applications":
+            return "Installed applications. Remove unused apps to free up space."
+        case "other":
+            return "Miscellaneous files across your system."
+        case "system":
+            return "System files and caches. Handle with care."
         default:
             return "Files and folders in this location."
         }
     }
 }
 
-struct HeaderView: View {
-    @ObservedObject var viewModel: MainViewModel
-    
-    var body: some View {
-        HStack {
-            // Breadcrumb
-            Image(systemName: "chevron.left")
-                .foregroundColor(.secondary)
-            Image(systemName: "house.fill")
-                .foregroundColor(.secondary)
-            Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
-            Text(viewModel.selectedCategory?.name ?? "Home")
-                .font(.headline)
-            
-            Spacer()
-            
-            // Selection toolbar
-            if !viewModel.selectedItems.isEmpty {
-                HStack(spacing: 12) {
-                    Text("\(viewModel.selectedItemsCount) items selected")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    Button(action: {
-                        viewModel.analyzeSelectedItems()
-                    }) {
-                        HStack(spacing: 4) {
-                            if viewModel.isAnalyzing {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .frame(width: 12, height: 12)
-                            } else {
-                                Image(systemName: "sparkles")
-                            }
-                            Text("Smart Check")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isAnalyzing)
-                    
-                    Button(action: {
-                        viewModel.confirmDelete()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash.fill")
-                            Text("Delete")
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
-                    
-                    Button(action: {
-                        viewModel.clearSelection()
-                    }) {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.borderless)
-                    .onHover { inside in
-                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(AppTheme.cardBackground)
-                .cornerRadius(8)
-            }
-        }
-        .padding()
-        .background(AppTheme.background)
-    }
-}
-
-struct ItemsListView: View {
+struct PremiumItemsListView: View {
     @ObservedObject var viewModel: MainViewModel
     
     var body: some View {
         ZStack {
-            // Loading state
             if viewModel.isLoadingItems {
+                // Loading State
                 VStack(spacing: 16) {
                     ProgressView()
-                        .scaleEffect(1.2)
-                        .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.accent))
+                        .controlSize(.large)
+                        .tint(AppTheme.accent)
                     
                     Text("Loading files...")
-                        .font(.system(size: 13))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(AppTheme.secondaryText)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.currentItems.isEmpty && viewModel.selectedCategory != nil {
-                // Empty state
-                VStack(spacing: 12) {
-                    Image(systemName: "folder.badge.questionmark")
-                        .font(.system(size: 40))
-                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+            } else if viewModel.currentItems.isEmpty {
+                // Empty State
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.darkerGray)
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "folder.badge.questionmark")
+                            .font(.system(size: 32))
+                            .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                    }
                     
                     Text("No items found")
-                        .font(.system(size: 14))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(AppTheme.secondaryText)
+                    
+                    Text("This category appears to be empty")
+                        .font(.system(size: 13))
+                        .foregroundColor(AppTheme.secondaryText.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // Content
                 VStack(spacing: 0) {
-                    // Header
-                    HStack(spacing: 12) {
+                    // List Header
+                    HStack(spacing: 0) {
+                        // Select All Checkbox
                         Button(action: { viewModel.toggleSelectAll() }) {
-                            Image(systemName: viewModel.areAllItemsSelected ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(viewModel.areAllItemsSelected ? AppTheme.accent : AppTheme.secondaryText)
-                                .font(.system(size: 18))
+                            ZStack {
+                                Circle()
+                                    .strokeBorder(
+                                        viewModel.areAllItemsSelected ? AppTheme.accent : AppTheme.darkGray,
+                                        lineWidth: 2
+                                    )
+                                    .frame(width: 22, height: 22)
+                                
+                                if viewModel.areAllItemsSelected {
+                                    Circle()
+                                        .fill(AppTheme.accent)
+                                        .frame(width: 14, height: 14)
+                                }
+                            }
+                            .padding(8) // Increase tap area
+                            .contentShape(Circle())
+                            .background(Color.black.opacity(0.001)) // Make transparent area clickable
                         }
                         .buttonStyle(.plain)
-                        .padding(.leading, 20)
-                        .help(viewModel.areAllItemsSelected ? "Deselect All" : "Select All")
+                        .padding(.leading, 24)
+                        .onHover { inside in
+                            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                        }
                         
                         Text("Name")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .padding(.leading, 16)
                         
                         Spacer()
                         
-                        Text("Date")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                        Text("Status")
+                            .frame(width: 160, alignment: .leading)
+                        
+                        Text("Modified")
                             .frame(width: 100, alignment: .trailing)
                         
                         Text("Size")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
                             .frame(width: 80, alignment: .trailing)
-                            .padding(.trailing, 20)
+                            .padding(.trailing, 24)
                     }
-                    .padding(.vertical, 10)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.7))
+                    .textCase(.uppercase)
+                    .padding(.vertical, 12)
                     .background(AppTheme.background)
-                    .overlay(
-                        Rectangle()
-                            .frame(height: 1)
-                            .foregroundColor(AppTheme.secondaryText.opacity(0.1)),
-                        alignment: .bottom
-                    )
                     
-                    ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if let category = viewModel.selectedCategory,
-                           ["user_library", "documents", "system"].contains(category.id),
-                           !viewModel.hasFullDiskAccess {
-                            FullDiskAccessBanner(viewModel: viewModel)
-                                .padding()
-                        }
-                        
-                        ForEach(viewModel.currentItems) { item in
-                            ItemRow(
-                                viewModel: viewModel,
-                                item: item
-                            )
-                            Divider() 
+                    Rectangle()
+                        .fill(AppTheme.darkerGray.opacity(0.5))
+                        .frame(height: 1)
+                    
+                    // Permission Banner (if needed)
+                    if let category = viewModel.selectedCategory,
+                       ["user_library", "documents", "system"].contains(category.id),
+                       !viewModel.hasFullDiskAccess {
+                        PremiumFullDiskAccessBanner(viewModel: viewModel)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                    }
+                    
+                    // Items ScrollView
+                    ScrollView(showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(viewModel.currentItems.enumerated()), id: \.element.id) { index, item in
+                                PremiumItemRow(
+                                    viewModel: viewModel,
+                                    item: item,
+                                    isEven: index % 2 == 0
+                                )
+                            }
                         }
                     }
-                }
                 }
             }
         }
     }
 }
 
-struct ItemRow: View {
+struct PremiumItemRow: View {
     @ObservedObject var viewModel: MainViewModel
     let item: StorageItem
+    let isEven: Bool
     
     @State private var isHovering = false
     
+    private var isSelected: Bool {
+        viewModel.selectedItems.contains(item.id)
+    }
+    
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
             // Checkbox
             Button(action: { viewModel.toggleItemSelection(item) }) {
-                let isSelected = viewModel.selectedItems.contains(item.id)
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? AppTheme.accent : AppTheme.secondaryText)
-                    .font(.system(size: 18))
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? AppTheme.accent : AppTheme.darkGray,
+                            lineWidth: 2
+                        )
+                        .frame(width: 22, height: 22)
+                    
+                    if isSelected {
+                        Circle()
+                            .fill(AppTheme.accent)
+                            .frame(width: 14, height: 14)
+                    }
+                }
             }
             .buttonStyle(.plain)
-            .padding(.leading, 20) // Shift to the right
+            .padding(.leading, 24)
             .onHover { inside in
                 if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
             }
             
             // Icon
-            Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
-                .foregroundColor(Color(hex: item.color)) // Use consistent color
-                .font(.system(size: 20))
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: item.color).opacity(0.15))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: item.color))
+            }
+            .padding(.leading, 12)
             
             // Name
             Text(item.name)
-                .font(.system(size: 13))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(AppTheme.primaryText)
                 .lineLimit(1)
-                .frame(width: 150, alignment: .leading)
-            
-            // Analysis Status Badge
-            AnalysisBadge(item: item)
-                .frame(width: 200, alignment: .leading)
+                .padding(.leading, 12)
             
             Spacer()
             
-            // Hover actions
+            // Hover Actions
             if isHovering {
                 HStack(spacing: 8) {
+                    // Smart Check
                     Button(action: { viewModel.analyzeItem(item) }) {
                         Text("Smart Check")
-                            .font(.caption)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(AppTheme.primaryText)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(AppTheme.darkerGray)
+                            )
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .disabled(item.analysisStatus == .analyzing)
                     .onHover { inside in
                         if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                     }
                     
+                    // Reveal in Finder
                     Button(action: { viewModel.revealInFinder(item: item) }) {
                         Image(systemName: "arrow.up.forward.square")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.secondaryText)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
                     .onHover { inside in
                         if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                     }
                     
-                    Button(action: {
-                        viewModel.confirmDeleteItem(item)
-                    }) {
-                        Image(systemName: "trash")
+                    // Delete
+                    Button(action: { viewModel.confirmDeleteItem(item) }) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 12))
                             .foregroundColor(AppTheme.accent)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
                     .onHover { inside in
                         if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                     }
                 }
+                .padding(.trailing, 12)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
+            
+            // Analysis Status
+            PremiumAnalysisBadge(item: item)
+                .frame(width: 160, alignment: .leading)
             
             // Date
             Text(item.formattedDate)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundColor(AppTheme.secondaryText)
                 .frame(width: 100, alignment: .trailing)
             
             // Size
             Text(item.formattedSize)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(AppTheme.primaryText)
                 .frame(width: 80, alignment: .trailing)
-                .padding(.trailing, 20)
+                .padding(.trailing, 24)
         }
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
+        .padding(.vertical, 12)
         .background(
-            GeometryReader { geo in
-                Color.clear
-                    .onChange(of: isHovering) { hovering in
-                        if hovering {
-                            let frame = geo.frame(in: .global)
-                            // Position the tooltip slightly to the right and down from the row
-                            viewModel.tooltipPosition = CGPoint(x: frame.minX + 40, y: frame.minY + 30)
-                            viewModel.hoveredItem = item
-                        } else {
-                            if viewModel.hoveredItem?.id == item.id {
-                                viewModel.hoveredItem = nil
-                            }
-                        }
-                    }
-            }
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    isHovering
+                        ? AppTheme.darkerGray.opacity(0.5)
+                        : (isEven ? Color.clear : AppTheme.darkerGray.opacity(0.2))
+                )
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                viewModel.toggleItemSelection(item)
+            }
+        }
         .onHover { hovering in
-            isHovering = hovering
-        }
-        .zIndex(isHovering ? 10 : 0)
-    }
-}
-
-// Tech Expert Tooltip Component
-struct TechExpertTooltip: View {
-    let item: StorageItem
-    
-    var body: some View {
-        if item.analysisStatus == .notAnalyzed {
-             EmptyView()
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(item.name)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Text(item.analysisDescription)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                Divider().background(Color.white.opacity(0.3))
-                
-                HStack(alignment: .top, spacing: 4) {
-                    Text("If deleted:")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    Text(item.analysisStatus == .safe ? "Safe to remove." : "May affect apps.")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
-                }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovering = hovering
             }
-            .padding(16)
-            .frame(width: 300)
-            .background(Color(red: 0.1, green: 0.1, blue: 0.1)) // Solid dark gray, NOT theme
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(AppTheme.accent, lineWidth: 2)
-            )
-            .shadow(color: .black, radius: 15, x: 0, y: 8)
-            .allowsHitTesting(false) // Bypass mouse events
-            .drawingGroup() // CRITICAL: Forces Metal rendering as a single opaque bitmap
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
     }
 }
 
-struct FullDiskAccessBanner: View {
-    @ObservedObject var viewModel: MainViewModel
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: "lock.shield.fill")
-                    .font(.title2)
-                    .foregroundColor(AppTheme.accent)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Full Disk Access Required")
-                        .font(.headline)
-                    Text("To scan some system and user folders (Library, Documents), macOS requires you to grant this app Full Disk Access in System Settings.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(nil)
-                }
-                
-                Spacer()
-                
-                Button("Open Settings") {
-                    viewModel.requestFullDiskAccess()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
-                .onHover { inside in
-                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                }
-            }
-            .padding()
-            .background(AppTheme.cardBackground.opacity(0.5))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(AppTheme.accent.opacity(0.3), lineWidth: 1)
-            )
-        }
-    }
-}
-
-struct AnalysisBadge: View {
+struct PremiumAnalysisBadge: View {
     let item: StorageItem
+    @State private var showDetails = false
     
     var body: some View {
         HStack(spacing: 8) {
-            // Fixed width icon container for perfect alignment
-            ZStack {
-                switch item.analysisStatus {
-                case .notAnalyzed:
-                    Image(systemName: "questionmark.circle")
-                        .foregroundColor(.secondary)
+            switch item.analysisStatus {
+            case .notAnalyzed:
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                Text("Not analyzed")
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                
+            case .analyzing:
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppTheme.accent)
+                Text("Analyzing...")
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.accent)
+                
+            case .safe:
+                BadgeButton(title: "Safe", icon: "checkmark.shield.fill", color: AppTheme.safe) {
+                    showDetails.toggle()
+                }
+                
+            case .review:
+                BadgeButton(title: "Review", icon: "exclamationmark.shield.fill", color: AppTheme.review) {
+                    showDetails.toggle()
+                }
+                
+            case .unknown:
+                Image(systemName: "circle.slash")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                Text("Unknown")
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+            }
+        }
+        .popover(isPresented: $showDetails, arrowEdge: .trailing) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: item.analysisStatus == .safe ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                        .foregroundColor(item.analysisStatus == .safe ? AppTheme.safe : AppTheme.review)
+                    Text("Smart Check Results")
+                        .font(.headline)
+                }
+                
+                Divider()
+                
+                Text(item.analysisDescription.isEmpty ? "No detailed feedback provided." : item.analysisDescription)
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                if !item.analysisConsequences.isEmpty {
+                    Text("Consequences:")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppTheme.secondaryText)
                     
-                case .analyzing:
-                    ProgressView()
-                        .controlSize(.small)
-                        .scaleEffect(0.6)
-                    
-                case .safe:
-                    Image(systemName: "checkmark.shield.fill")
-                        .foregroundColor(.green)
+                    Text(item.analysisConsequences)
                         .font(.system(size: 12))
+                        .foregroundColor(AppTheme.terracotta.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                HStack {
+                    Text("Safe to delete:")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppTheme.secondaryText)
                     
-                case .review:
-                    Image(systemName: "exclamationmark.shield.fill")
-                        .foregroundColor(.yellow)
-                        .font(.system(size: 12))
-                    
-                case .unknown:
-                    Image(systemName: "circle.slash")
-                        .foregroundColor(.secondary)
+                    Text(item.safeToDelete ? "Yes" : "No")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(item.safeToDelete ? AppTheme.safe : AppTheme.review)
+                }
+                
+                if item.analysisStatus == .review {
+                    Text("Recommendation: Manual review suggested.")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(AppTheme.terracotta)
                 }
             }
-            .frame(width: 20, alignment: .center)
-            
-            HStack(spacing: 6) {
-                switch item.analysisStatus {
-                case .notAnalyzed:
-                    Text("Not analyzed")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                case .analyzing:
-                    Text("Analyzing...")
-                        .font(.caption)
-                        .foregroundColor(AppTheme.accent)
-                    
-                case .safe:
-                    HStack(spacing: 8) {
-                        Text("safe")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(AppTheme.safe)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        
-                        if !item.analysisDescription.isEmpty {
-                            Text(item.analysisDescription)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                case .review:
-                    HStack(spacing: 8) {
-                        Text("review")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(AppTheme.review)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        
-                        if !item.analysisDescription.isEmpty {
-                            Text(item.analysisDescription)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                case .unknown:
-                    Text("unknown")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
+            .frame(width: 300) // Fixed width for compact layout
+            .padding(16)
+            .background(AppTheme.darkerGray)
         }
     }
 }
 
-struct BottomPanelView: View {
+struct BadgeButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    @State private var isHovering = false
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white)
+                Text(title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(color)
+                    .shadow(color: color.opacity(isHovering ? 0.6 : 0.3), radius: isHovering ? 8 : 4)
+            )
+            .scaleEffect(isHovering ? 1.05 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .onHover { inside in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isHovering = inside
+            }
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+    }
+}
+
+struct PremiumFullDiskAccessBanner: View {
     @ObservedObject var viewModel: MainViewModel
     
     var body: some View {
-        GeometryReader { geometry in
-            let panelWidth = (geometry.size.width - 16) / 2 // Equal width with 16px gap
-            
-            HStack(spacing: 16) {
-                // Left Panel: Treemap/Sunburst
-                VStack(alignment: .leading, spacing: 0) {
-                    // Tab Bar
-                    HStack(spacing: 24) {
-                        TabButton(title: "Treemap", isActive: viewModel.selectedBottomTab == .treemap) {
-                            viewModel.selectedBottomTab = .treemap
-                        }
-                        
-                        TabButton(title: "Sunburst", isActive: viewModel.selectedBottomTab == .sunburst) {
-                            viewModel.selectedBottomTab = .sunburst
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(.leading, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 12)
-                    
-                    // Treemap visualization
-                    Group {
-                        if viewModel.selectedBottomTab == .treemap {
-                            let topItems = viewModel.currentItems.sorted(by: { $0.size > $1.size }).prefix(20)
-                            TreemapView(items: Array(topItems))
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 20)
-                        } else {
-                            VStack {
-                                Spacer()
-                                Image(systemName: "chart.pie.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.secondary.opacity(0.3))
-                                Text("Sunburst View Coming Soon")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
-                }
-                .frame(width: panelWidth)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(white: 0.15))
-                )
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accent.opacity(0.15))
+                    .frame(width: 44, height: 44)
                 
-                // Right Panel: Largest Files
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Largest Files")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppTheme.primaryText)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        .padding(.bottom, 16)
-                    
-                    ScrollView(showsIndicators: false) {
-                        let sortedItems = viewModel.currentItems.sorted(by: { $0.size > $1.size })
-                        VStack(alignment: .leading, spacing: 16) {
-                            ForEach(sortedItems.prefix(5)) { file in
-                                HStack(spacing: 14) {
-                                    Image(systemName: file.isDirectory ? "folder.fill" : "doc.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(AppTheme.secondaryText.opacity(0.6))
-                                        .frame(width: 24)
-                                    
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(file.name)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(AppTheme.primaryText)
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
-                                        
-                                        Text(file.formattedSize)
-                                            .font(.system(size: 12))
-                                            .foregroundColor(AppTheme.secondaryText.opacity(0.7))
-                                    }
-                                    
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        }
-                        .padding(.bottom, 16)
-                    }
-                }
-                .frame(width: panelWidth)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(white: 0.15))
-                )
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppTheme.accent)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Full Disk Access Required")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppTheme.primaryText)
+                
+                Text("Grant access to scan protected folders")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            Spacer()
+            
+            Button(action: { viewModel.requestFullDiskAccess() }) {
+                Text("Open Settings")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(AppTheme.accent)
+                    )
+            }
+            .buttonStyle(.plain)
+            .onHover { inside in
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
             }
         }
-        .frame(height: 240)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppTheme.darkerGray.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(AppTheme.accent.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 
-// MARK: - Treemap
+// MARK: - Premium Bottom Panel
 
-struct TabButton: View {
+struct PremiumBottomPanelView: View {
+    @ObservedObject var viewModel: MainViewModel
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(AppTheme.darkerGray.opacity(0.5))
+                .frame(height: 1)
+            
+            GeometryReader { geometry in
+                let panelWidth = (geometry.size.width - 48) / 2
+                
+                HStack(spacing: 16) {
+                    // Left Panel - Treemap
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Segmented Tab Control
+                        HStack(spacing: 0) {
+                            PremiumTabButton(
+                                title: "Treemap",
+                                icon: "square.grid.2x2",
+                                isActive: viewModel.selectedBottomTab == .treemap
+                            ) {
+                                viewModel.selectedBottomTab = .treemap
+                            }
+                            
+                            PremiumTabButton(
+                                title: "Sunburst",
+                                icon: "chart.pie",
+                                isActive: viewModel.selectedBottomTab == .sunburst
+                            ) {
+                                viewModel.selectedBottomTab = .sunburst
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
+                        
+                            Group {
+                                if viewModel.selectedBottomTab == .treemap {
+                                    let topItems = viewModel.currentItems.sorted { $0.size > $1.size }.prefix(15)
+                                    PremiumTreemapView(viewModel: viewModel, items: Array(topItems))
+                                        .padding(16)
+                                } else {
+                                    let topItems = viewModel.currentItems.sorted { $0.size > $1.size }.prefix(8)
+                                    PremiumSunburstView(viewModel: viewModel, items: Array(topItems))
+                                        .padding(20)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: .infinity)
+                        .frame(width: panelWidth)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(AppTheme.darkerGray.opacity(0.4))
+                        )
+                    
+                    // Right Panel - Largest Files
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppTheme.accent)
+                            
+                            Text("Largest Files")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppTheme.primaryText)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
+                        .padding(.bottom, 12)
+                        
+                        ScrollView(showsIndicators: false) {
+                            let sortedItems = viewModel.currentItems.sorted { $0.size > $1.size }
+                            VStack(spacing: 10) {
+                                ForEach(Array(sortedItems.prefix(5).enumerated()), id: \.element.id) { index, file in
+                                    PremiumLargestFileRow(file: file, rank: index + 1)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 16)
+                        }
+                    }
+                    .frame(width: panelWidth)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(AppTheme.darkerGray.opacity(0.4))
+                    )
+                }
+                .padding(16)
+            }
+        }
+        .frame(height: 260)
+        .background(AppTheme.background)
+    }
+}
+
+struct PremiumTabButton: View {
     let title: String
+    let icon: String
     let isActive: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
                 Text(title)
-                    .font(.system(size: 13, weight: isActive ? .bold : .medium))
-                    .foregroundColor(isActive ? .primary : .secondary)
-                
-                if isActive {
-                    Rectangle()
-                        .fill(AppTheme.accent)
-                        .frame(width: 20, height: 2)
-                        .cornerRadius(1)
-                } else {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: 20, height: 2)
-                }
+                    .font(.system(size: 12, weight: isActive ? .semibold : .medium))
             }
+            .foregroundColor(isActive ? AppTheme.primaryText : AppTheme.secondaryText)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isActive ? AppTheme.darkerGray : Color.clear)
+            )
         }
         .buttonStyle(.plain)
         .onHover { inside in
@@ -954,7 +1184,179 @@ struct TabButton: View {
     }
 }
 
-struct TreemapView: View {
+struct PremiumLargestFileRow: View {
+    let file: StorageItem
+    let rank: Int
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Rank Badge
+            Text("\(rank)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(rank <= 3 ? .white : AppTheme.secondaryText)
+                .frame(width: 22, height: 22)
+                .background(
+                    Circle()
+                        .fill(rank <= 3 ? AppTheme.accent : AppTheme.darkGray)
+                )
+            
+            // Icon
+            Image(systemName: file.isDirectory ? "folder.fill" : "doc.fill")
+                .font(.system(size: 16))
+                .foregroundColor(Color(hex: file.color))
+            
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(file.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppTheme.primaryText)
+                    .lineLimit(1)
+                
+                Text(file.formattedSize)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(AppTheme.accent)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+struct PremiumSunburstView: View {
+    @ObservedObject var viewModel: MainViewModel
+    let items: [StorageItem]
+    
+    // Geometry constant for hit testing
+    private let innerRadius: CGFloat = 50
+    private let outerRadius: CGFloat = 100
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            
+            ZStack {
+                // Chart Content
+                ZStack {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        let startAngle = angleForIndex(index)
+                        let endAngle = angleForIndex(index + 1)
+                        let color = AppTheme.treemapPalette[index % AppTheme.treemapPalette.count]
+                        
+                        SunburstSlice(
+                            startAngle: startAngle,
+                            endAngle: endAngle,
+                            innerRadius: innerRadius,
+                            outerRadius: outerRadius
+                        )
+                        .fill(
+                            LinearGradient(
+                                colors: [color, color.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.2), radius: 2)
+                    }
+                }
+                // Add a transparent overlay to capture all hover/mouse events continuously
+                .background(Color.black.opacity(0.001))
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        // Calculate hit test manually for perfect precision
+                        let vector = CGVector(dx: location.x - center.x, dy: location.y - center.y)
+                        let distance = sqrt(vector.dx * vector.dx + vector.dy * vector.dy)
+                        
+                        // Check if inside ring
+                        if distance >= innerRadius && distance <= outerRadius {
+                            // Calculate angle (-180 to 180) -> converted to match chart angles
+                            let angle = atan2(vector.dy, vector.dx) * 180 / .pi
+                            
+                            // Let's normalize everything to 0-360 starting from -90 (Top)
+                            let normalizedAngle = (angle + 90).truncatingRemainder(dividingBy: 360)
+                            let finalAngle = normalizedAngle < 0 ? normalizedAngle + 360 : normalizedAngle
+                            
+                            // Find item that spans this angle
+                            let total = items.reduce(0) { $0 + $1.size }
+                            if total > 0 {
+                                var currentAngle: Double = 0
+                                
+                                for item in items {
+                                    let ratio = Double(item.size) / Double(total)
+                                    let sweep = ratio * 360
+                                    
+                                    if finalAngle >= currentAngle && finalAngle < (currentAngle + sweep) {
+                                        viewModel.hoveredItem = item
+                                        viewModel.tooltipPosition = location
+                                        NSCursor.pointingHand.push()
+                                        return
+                                    }
+                                    currentAngle += sweep
+                                }
+                            }
+                        }
+                        
+                        // If we fall through here, we are not hovering a valid item
+                        if viewModel.hoveredItem != nil {
+                            viewModel.hoveredItem = nil
+                            NSCursor.pop()
+                        }
+                        
+                    case .ended:
+                        viewModel.hoveredItem = nil
+                        NSCursor.pop()
+                    }
+                }
+                
+                // Tooltip (Not Clipped)
+                if let hovered = viewModel.hoveredItem, items.contains(where: { $0.id == hovered.id }) {
+                    PremiumChartTooltip(item: hovered)
+                        .fixedSize() // Prevent truncation
+                        .position(x: viewModel.tooltipPosition.x, y: viewModel.tooltipPosition.y - 30)
+                        .zIndex(100)
+                        .allowsHitTesting(false)
+                }
+                
+                VStack(spacing: 2) {
+                    Text("\(items.count)")
+                        .font(.system(size: 18, weight: .bold))
+                    Text("Items")
+                        .font(.system(size: 9))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+            }
+        }
+    }
+    func angleForIndex(_ index: Int) -> Angle {
+        let total = items.reduce(0) { $0 + $1.size }
+        guard total > 0 else { return .degrees(0) }
+        
+        let subtotal = items.prefix(index).reduce(0) { $0 + $1.size }
+        return .degrees(Double(subtotal) / Double(total) * 360 - 90)
+    }
+}
+
+struct SunburstSlice: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    let innerRadius: CGFloat
+    let outerRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        var path = Path()
+        
+        path.addArc(center: center, radius: outerRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        path.addArc(center: center, radius: innerRadius, startAngle: endAngle, endAngle: startAngle, clockwise: true)
+        path.closeSubpath()
+        
+        return path
+    }
+}
+
+struct PremiumTreemapView: View {
+    @ObservedObject var viewModel: MainViewModel
     let items: [StorageItem]
     
     var body: some View {
@@ -962,21 +1364,47 @@ struct TreemapView: View {
             let rects = calculateTreemap(items: items, in: CGRect(origin: .zero, size: geometry.size))
             
             ZStack {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    let rect = rects[index]
-                    if rect.width > 2 && rect.height > 2 {
-                        let color = AppTheme.treemapPalette[index % AppTheme.treemapPalette.count]
-                        
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(color.opacity(0.85))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                            )
-                            .frame(width: max(rect.width - 1, 0), height: max(rect.height - 1, 0))
-                            .position(x: rect.midX, y: rect.midY)
-                            .help("\(item.name): \(item.formattedSize)")
+                // Chart Content (Clipped)
+                ZStack {
+                    ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                        if index < rects.count {
+                            let rect = rects[index]
+                            if rect.width > 3 && rect.height > 3 {
+                                let color = AppTheme.treemapPalette[index % AppTheme.treemapPalette.count]
+                                
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [color, color.opacity(0.7)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: max(rect.width - 2, 0), height: max(rect.height - 2, 0))
+                                    .onHover { inside in
+                                        if inside {
+                                            viewModel.hoveredItem = item
+                                            viewModel.tooltipPosition = CGPoint(x: rect.midX, y: rect.minY)
+                                            NSCursor.pointingHand.push()
+                                        } else {
+                                            viewModel.hoveredItem = nil
+                                            NSCursor.pop()
+                                        }
+                                    }
+                                    .position(x: rect.midX, y: rect.midY)
+                            }
+                        }
                     }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12)) // Clip ONLY the chart
+                
+                // Tooltip (Not Clipped)
+                if let hovered = viewModel.hoveredItem, items.contains(where: { $0.id == hovered.id }) {
+                    PremiumChartTooltip(item: hovered)
+                        .fixedSize() // Prevent truncation
+                        .position(x: viewModel.tooltipPosition.x, y: viewModel.tooltipPosition.y - 20)
+                        .zIndex(100)
+                        .allowsHitTesting(false)
                 }
             }
         }
@@ -985,35 +1413,68 @@ struct TreemapView: View {
     private func calculateTreemap(items: [StorageItem], in bounds: CGRect) -> [CGRect] {
         guard !items.isEmpty else { return [] }
         
-        let totalDisplaySize = items.reduce(0) { $0 + $1.size }
-        guard totalDisplaySize > 0 else { return [] }
+        let totalSize = items.reduce(0) { $0 + $1.size }
+        guard totalSize > 0 else { return [] }
         
         var rects: [CGRect] = []
-        var remainingRect = bounds
+        var remaining = bounds
         
-        let sortedItems = items.sorted(by: { $0.size > $1.size })
+        let sorted = items.sorted { $0.size > $1.size }
         
-        for (index, item) in sortedItems.enumerated() {
-            let totalRemaining = sortedItems[index...].reduce(0) { $0 + $1.size }
-            let ratio = CGFloat(item.size) / CGFloat(totalRemaining)
+        for (index, item) in sorted.enumerated() {
+            let rest = sorted[index...].reduce(0) { $0 + $1.size }
+            let ratio = CGFloat(item.size) / CGFloat(rest)
             
-            var currentRect: CGRect
-            if remainingRect.width > remainingRect.height {
-                let width = remainingRect.width * ratio
-                currentRect = CGRect(x: remainingRect.minX, y: remainingRect.minY, width: width, height: remainingRect.height)
-                remainingRect = CGRect(x: remainingRect.minX + width, y: remainingRect.minY, width: remainingRect.width - width, height: remainingRect.height)
+            var rect: CGRect
+            if remaining.width > remaining.height {
+                let w = remaining.width * ratio
+                rect = CGRect(x: remaining.minX, y: remaining.minY, width: w, height: remaining.height)
+                remaining = CGRect(x: remaining.minX + w, y: remaining.minY, width: remaining.width - w, height: remaining.height)
             } else {
-                let height = remainingRect.height * ratio
-                currentRect = CGRect(x: remainingRect.minX, y: remainingRect.minY, width: remainingRect.width, height: height)
-                remainingRect = CGRect(x: remainingRect.minX, y: remainingRect.minY + height, width: remainingRect.width, height: remainingRect.height - height)
+                let h = remaining.height * ratio
+                rect = CGRect(x: remaining.minX, y: remaining.minY, width: remaining.width, height: h)
+                remaining = CGRect(x: remaining.minX, y: remaining.minY + h, width: remaining.width, height: remaining.height - h)
             }
-            rects.append(currentRect)
+            rects.append(rect)
         }
         
         return rects
     }
 }
 
+// MARK: - Preview
+
 #Preview {
     MainView()
+}
+
+struct PremiumChartTooltip: View {
+    let item: StorageItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.name)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .fixedSize(horizontal: false, vertical: true) // Allow wrapping if needed
+                .layoutPriority(1)
+            Text(item.formattedSize)
+                .font(.system(size: 10))
+                .foregroundColor(.white.opacity(0.8))
+                .fixedSize()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.8))
+                
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+            }
+        )
+        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9)), removal: .opacity))
+    }
 }

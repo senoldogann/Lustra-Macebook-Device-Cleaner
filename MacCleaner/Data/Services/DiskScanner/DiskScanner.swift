@@ -29,61 +29,46 @@ actor DiskScanner {
             StorageCategory(
                 id: "system_junk",
                 name: "System Junk",
-                icon: "gearshape.2.fill",
-                path: home.appendingPathComponent("Library/Caches"),
-                color: "D97757" // Terracotta
+                path: home.appendingPathComponent("Library/Caches")
             ),
             StorageCategory(
                 id: "user_library",
                 name: "User Library",
-                icon: "folder.fill",
-                path: home.appendingPathComponent("Library"),
-                color: "4A90E2" // Blue
+                path: home.appendingPathComponent("Library/Application Support")
             ),
             StorageCategory(
                 id: "downloads",
                 name: "Downloads",
-                icon: "arrow.down.circle.fill",
-                path: home.appendingPathComponent("Downloads"),
-                color: "7ED321" // Green
+                path: home.appendingPathComponent("Downloads")
+            ),
+            StorageCategory(
+                id: "containers",
+                name: "App Containers & Misc",
+                path: home.appendingPathComponent("Library/Containers")
             ),
             StorageCategory(
                 id: "desktop",
                 name: "Desktop",
-                icon: "desktopcomputer",
-                path: home.appendingPathComponent("Desktop"),
-                color: "BD10E0" // Purple
+                path: home.appendingPathComponent("Desktop")
+            ),
+            StorageCategory(
+                id: "media",
+                name: "Media & Photos",
+                path: home.appendingPathComponent("Movies")
             ),
             StorageCategory(
                 id: "documents",
                 name: "Documents",
-                icon: "doc.fill",
-                path: home.appendingPathComponent("Documents"),
-                color: "F5A623" // Orange
+                path: home.appendingPathComponent("Documents")
             ),
             StorageCategory(
                 id: "applications",
                 name: "Applications",
-                icon: "app.fill",
-                path: URL(fileURLWithPath: "/Applications"),
-                color: "50E3C2" // Teal
-            ),
-            StorageCategory(
-                id: "other",
-                name: "Other",
-                icon: "questionmark.folder.fill",
-                path: home,
-                color: "4D4C48" // Gray
-            ),
-            StorageCategory(
-                id: "system",
-                name: "System",
-                icon: "internaldrive.fill",
-                path: URL(fileURLWithPath: "/System"),
-                color: "D0021B" // Red
+                path: URL(fileURLWithPath: "/Applications")
             )
         ]
     }
+
     
     /// Calculate size of a directory - FAST method using 'du' command
     /// This is significantly faster than FileManager for large directories like ~/Library
@@ -135,6 +120,47 @@ actor DiskScanner {
         }
     }
     
+    /// Use 'du -sk' for multiple URLs in a single process (Massive speedup for directory listings)
+    private nonisolated func calculateSizesUsingDu(for urls: [URL]) async -> [URL: Int64] {
+        if urls.isEmpty { return [:] }
+        
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let pipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/du")
+                process.arguments = ["-sk"] + urls.map { $0.path }
+                process.standardOutput = pipe
+                process.standardError = FileHandle.nullDevice
+                
+                var results: [URL: Int64] = [:]
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    if let output = String(data: data, encoding: .utf8) {
+                        let lines = output.components(separatedBy: .newlines)
+                        for line in lines {
+                            let components = line.components(separatedBy: "\t")
+                            if components.count >= 2,
+                               let sizeInKB = Int64(components[0]) {
+                                let path = components[1]
+                                let url = URL(fileURLWithPath: path)
+                                results[url] = sizeInKB * 1024
+                            }
+                        }
+                    }
+                    continuation.resume(returning: results)
+                } catch {
+                    continuation.resume(returning: [:])
+                }
+            }
+        }
+    }
+    
     /// Serial scan for subdirectories (recursive via enumerator)
     private nonisolated func serialCalculateSize(at url: URL) -> Int64 {
         var totalSize: Int64 = 0
@@ -161,14 +187,22 @@ actor DiskScanner {
         return totalSize
     }
     
+    /// Restricted folders that should NEVER be scanned or deleted
+    /// These are typically SIP-protected or system-critical caches that cause permission errors
+    private let restrictedCaches: Set<String> = [
+        "com.apple.findmy.fmipcore",
+        "com.apple.HomeKit",
+        "com.apple.CloudKit",
+        "com.apple.ap.adprivacyd",
+        "com.apple.homed",
+        "com.apple.Music" // Often causes issues if Music is open
+    ]
+
     /// Get top-level items in a directory with their sizes
     nonisolated func getItems(in url: URL, color: String = "4D4C48", limit: Int = 100) async -> [StorageItem] {
         print("DEBUG: Getting items for \(url.path)")
         
-        guard fileManager.isReadableFile(atPath: url.path) else {
-            print("DEBUG: Path not readable: \(url.path)")
-            return []
-        }
+        guard fileManager.isReadableFile(atPath: url.path) else { return [] }
         
         let keys: Set<URLResourceKey> = [.fileSizeKey, .isDirectoryKey, .contentModificationDateKey]
         
@@ -179,64 +213,48 @@ actor DiskScanner {
                 options: [.skipsHiddenFiles]
             )
             
-            print("DEBUG: Found \(contents.count) items in raw scan")
-            let limitedContents = Array(contents.prefix(limit))
-            
-            return await withTaskGroup(of: StorageItem?.self) { group in
-                for itemURL in limitedContents {
-                    group.addTask {
-                        if Task.isCancelled { return nil }
-                        
-                        // Yield occasionally to prevent blocking the thread pool
-                        await Task.yield()
-                        
-                        do {
-                            let values = try itemURL.resourceValues(forKeys: keys)
-                            let isDir = values.isDirectory ?? false
-                            
-                            var size: Int64 = 0
-                            if isDir {
-                                // For directories, calculate total size concurrently
-                                size = await self.calculateDirectorySize(at: itemURL)
-                            } else {
-                                size = Int64(values.fileSize ?? 0)
-                            }
-                            
-                            var item = StorageItem(
-                                url: itemURL,
-                                name: itemURL.lastPathComponent,
-                                size: size,
-                                modificationDate: values.contentModificationDate,
-                                isDirectory: isDir
-                            )
-                            item.color = color
-                            return item
-                        } catch {
-                            // print("DEBUG: Failed to get attributes for \(itemURL.lastPathComponent): \(error)")
-                            return nil
-                        }
-                    }
+            // Filter out restricted caches if we are in Library/Caches
+            let isCacheFolder = url.path.hasSuffix("Library/Caches")
+            let filteredContents = contents.filter { url in
+                if isCacheFolder {
+                    return !restrictedCaches.contains(url.lastPathComponent)
                 }
-                
-                var items: [StorageItem] = []
-                for await item in group {
-                    if let item = item {
-                        items.append(item)
-                    }
-                }
-                
-                return items.sorted { $0.size > $1.size }
+                return true
             }
+            
+            let sortedContents = filteredContents.prefix(limit)
+            let directoryURLs = sortedContents.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false }
+            
+            // Batch calculate directory sizes
+            let dirSizes = await calculateSizesUsingDu(for: Array(directoryURLs))
+            
+            var items: [StorageItem] = []
+            for itemURL in sortedContents {
+                do {
+                    let values = try itemURL.resourceValues(forKeys: keys)
+                    let isDir = values.isDirectory ?? false
+                    let size = isDir ? (dirSizes[itemURL] ?? 0) : Int64(values.fileSize ?? 0)
+                    
+                    var item = StorageItem(
+                        url: itemURL,
+                        name: itemURL.lastPathComponent,
+                        size: size,
+                        modificationDate: values.contentModificationDate,
+                        isDirectory: isDir
+                    )
+                    item.color = color
+                    items.append(item)
+                } catch { continue }
+            }
+            
+            return items.sorted { $0.size > $1.size }
         } catch {
-            print("DEBUG: Failed to list directory contents: \(error)")
-            Logger.scan.error("Failed to list directory: \(error.localizedDescription)")
             return []
         }
     }
     
     /// Get largest files across common directories
     nonisolated func getLargestFiles(limit: Int = 20) async -> [StorageItem] {
-        var allFiles: [StorageItem] = []
         let home = realHomeDirectory
         
         let searchPaths = [
@@ -244,46 +262,54 @@ actor DiskScanner {
             home.appendingPathComponent("Documents"),
             home.appendingPathComponent("Desktop"),
             home.appendingPathComponent("Movies"),
-            home.appendingPathComponent("Music")
+            home.appendingPathComponent("Music"),
+            home.appendingPathComponent("Library/Application Support")
         ]
         
         let keys: Set<URLResourceKey> = [.fileSizeKey, .isDirectoryKey, .contentModificationDateKey]
-        let threshold: Int64 = 50 * 1024 * 1024 // 50 MB
+        let threshold: Int64 = 100 * 1024 * 1024 // Increased to 100 MB for "Largest Files"
         
-        for searchPath in searchPaths {
-            guard fileManager.isReadableFile(atPath: searchPath.path) else { continue }
-            
-            guard let enumerator = fileManager.enumerator(
-                at: searchPath,
-                includingPropertiesForKeys: Array(keys),
-                options: [.skipsHiddenFiles, .skipsPackageDescendants]
-            ) else { continue }
-            
-            for case let fileURL as URL in enumerator {
-                if Task.isCancelled { break }
-                
-                do {
-                    let values = try fileURL.resourceValues(forKeys: keys)
-                    let isDir = values.isDirectory ?? false
-                    let size = Int64(values.fileSize ?? 0)
+        return await withTaskGroup(of: [StorageItem].self) { group in
+            for searchPath in searchPaths {
+                group.addTask {
+                    var files: [StorageItem] = []
+                    guard self.fileManager.isReadableFile(atPath: searchPath.path) else { return [] }
                     
-                    if !isDir && size > threshold {
-                        let item = StorageItem(
-                            url: fileURL,
-                            name: fileURL.lastPathComponent,
-                            size: size,
-                            modificationDate: values.contentModificationDate,
-                            isDirectory: false
-                        )
-                        allFiles.append(item)
+                    guard let enumerator = self.fileManager.enumerator(
+                        at: searchPath,
+                        includingPropertiesForKeys: Array(keys),
+                        options: [.skipsHiddenFiles, .skipsPackageDescendants]
+                    ) else { return [] }
+                    
+                    for case let fileURL as URL in enumerator {
+                        if Task.isCancelled { break }
+                        
+                        do {
+                            let values = try fileURL.resourceValues(forKeys: keys)
+                            let isDir = values.isDirectory ?? false
+                            let size = Int64(values.fileSize ?? 0)
+                            
+                            if !isDir && size > threshold {
+                                files.append(StorageItem(
+                                    url: fileURL,
+                                    name: fileURL.lastPathComponent,
+                                    size: size,
+                                    modificationDate: values.contentModificationDate,
+                                    isDirectory: false
+                                ))
+                            }
+                        } catch { continue }
                     }
-                } catch {
-                    // Skip
+                    return files
                 }
             }
+            
+            var allFiles: [StorageItem] = []
+            for await files in group {
+                allFiles.append(contentsOf: files)
+            }
+            
+            return Array(allFiles.sorted { $0.size > $1.size }.prefix(limit))
         }
-        
-        // Sort by size and return top N
-        return Array(allFiles.sorted { $0.size > $1.size }.prefix(limit))
     }
 }

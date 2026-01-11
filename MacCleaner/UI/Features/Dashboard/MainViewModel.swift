@@ -73,17 +73,19 @@ final class MainViewModel: ObservableObject {
         let hasCachedData = loadCachedData()
         
         // If we have valid cached data, skip directly to results!
+        // If we have valid cached data, we still load it to be ready,
+        // BUT we do NOT skip to results. User wants to see Welcome screen always.
         if hasCachedData && hasValidCache() {
-            print("DEBUG: Valid cache found from \(lastScanDate?.description ?? "unknown"). Skipping to results.")
+            print("DEBUG: Valid cache found from \(lastScanDate?.description ?? "unknown"). Loading data but staying on Welcome.")
             // Load disk info
             loadDiskInfo()
-            // Auto-select first category
+            // Auto-select first category in background
             if let first = categories.first {
                 selectedCategory = first
                 currentItems = first.items
             }
-            // Skip welcome screen, go directly to results
-            appState = .results
+            // DISABLED: Do not auto-skip
+            // appState = .results
         }
         
         // Observe permission changes
@@ -269,84 +271,48 @@ final class MainViewModel: ObservableObject {
             
             self.isScanning = true
             
-            let totalCategories = Double(self.categories.count)
-            var completedCategories = 0.0
-            
-            // Sequential Scan (Better for Disk I/O & Progress)
-            for i in 0..<self.categories.count {
-                let categoryName = self.categories[i].name
-                let categoryPath = self.categories[i].path
-                
-                print("DEBUG: [SCAN] Starting scan for category: \(categoryName) at path: \(categoryPath.path)")
-                
-                await MainActor.run {
-                    self.currentlyScanningCategory = categoryName
-                    self.categories[i].isScanning = true
+            // Parallel Scan using TaskGroup
+            await withTaskGroup(of: (Int, Int64, [StorageItem]).self) { group in
+                for i in 0..<self.categories.count {
+                    let index = i
+                    let categoryPath = self.categories[index].path
+                    let categoryId = self.categories[index].id
+                    let categoryName = self.categories[index].name
+                    
+                    group.addTask {
+                        print("DEBUG: [SCAN] Background task started for: \(categoryName)")
+                        // Get items and total size in one go
+                        let items = await self.scanner.getItems(in: categoryPath, color: CategoryPresenter.hexColor(for: categoryId))
+                        let totalSize = items.reduce(0) { $0 + $1.size }
+                        return (index, totalSize, items)
+                    }
                 }
                 
-                // Scan with 5-minute timeout (increased for large directories like User Library)
-                let size: Int64 = await withTaskGroup(of: (String, Int64?).self) { innerGroup in
-                    innerGroup.addTask {
-                        let result = await self.scanner.calculateDirectorySize(at: categoryPath)
-                        print("DEBUG: [SCAN] Category '\(categoryName)' scan completed with size: \(result)")
-                        return ("scan", result)
-                    }
+                var completedCount = 0
+                for await (index, size, items) in group {
+                    completedCount += 1
+                    let progress = Double(completedCount) / Double(self.categories.count)
                     
-                    innerGroup.addTask {
-                        // 5 minute timeout per category (increased from 30s for large folders)
-                        try? await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
-                        print("DEBUG: [SCAN] Category '\(categoryName)' TIMEOUT after 5 minutes")
-                        return ("timeout", nil)
-                    }
-                    
-                    // Wait for first result
-                    var scanResult: Int64? = nil
-                    var timedOut = false
-                    
-                    for await (type, value) in innerGroup {
-                        if type == "scan" {
-                            scanResult = value
-                            print("DEBUG: [SCAN] Category '\(categoryName)' using scan result: \(value ?? 0)")
-                            innerGroup.cancelAll()
-                            break
-                        } else if type == "timeout" {
-                            timedOut = true
-                            print("DEBUG: [SCAN] Category '\(categoryName)' timed out, will use 0")
-                            innerGroup.cancelAll()
-                            break
+                    await MainActor.run {
+                        self.categories[index].size = size
+                        self.categories[index].items = items
+                        self.categories[index].isScanning = false
+                        self.scanProgress = progress
+                        print("DEBUG: [SCAN] Category '\(self.categories[index].name)' finished. Size: \(size)")
+                        
+                        // If this was the selected category, update it
+                        if self.selectedCategory?.id == self.categories[index].id {
+                            self.selectedCategory?.size = size
+                            self.selectedCategory?.items = items
+                            self.currentItems = items
                         }
                     }
-                    
-                    let finalSize = scanResult ?? 0
-                    print("DEBUG: [SCAN] Category '\(categoryName)' final size: \(finalSize)")
-                    return finalSize
-                }
-                
-                await MainActor.run {
-                    self.categories[i].size = size
-                    self.categories[i].isScanning = false
-                    print("DEBUG: [SCAN] Updated category '\(categoryName)' with size: \(size)")
-                    
-                    // Update progress
-                    completedCategories += 1.0
-                    withAnimation {
-                        self.scanProgress = completedCategories / totalCategories
-                    }
-                }
-                
-                // Pre-load items for this category (so they're ready when user clicks)
-                let categoryColor = self.categories[i].color
-                let items = await self.scanner.getItems(in: categoryPath, color: categoryColor)
-                
-                await MainActor.run {
-                    self.categories[i].items = items
-                    print("DEBUG: [SCAN] Pre-loaded \(items.count) items for '\(categoryName)'")
                 }
             }
             
-            print("DEBUG: Scan loop finished")
+            print("DEBUG: All parallel scans finished")
             
-            // Artificial delay for UX
+            // Artificial delay for UX transitions
             try? await Task.sleep(nanoseconds: 500_000_000)
             
             self.saveCachedData()
@@ -390,7 +356,7 @@ final class MainViewModel: ObservableObject {
         
         if Task.isCancelled { return }
         
-        let items = await scanner.getItems(in: category.path, color: category.color)
+        let items = await scanner.getItems(in: category.path, color: CategoryPresenter.hexColor(for: category.id))
         
         if Task.isCancelled { return }
         
@@ -421,17 +387,23 @@ final class MainViewModel: ObservableObject {
     }
     
     func toggleSelectAll() {
-        if selectedItems.count == currentItems.count && !currentItems.isEmpty {
-            // Deselect all
-            selectedItems.removeAll()
+        if areAllItemsSelected {
+            // Deselect all items in the CURRENT list
+            for item in currentItems {
+                selectedItems.remove(item.id)
+            }
         } else {
-            // Select all
-            selectedItems = Set(currentItems.map { $0.id })
+            // Select all items in the CURRENT list
+            for item in currentItems {
+                selectedItems.insert(item.id)
+            }
         }
     }
     
     var areAllItemsSelected: Bool {
-        return !currentItems.isEmpty && selectedItems.count == currentItems.count
+        guard !currentItems.isEmpty else { return false }
+        // All items in the current view must be in the selection set
+        return currentItems.allSatisfy { selectedItems.contains($0.id) }
     }
     
     // MARK: - AI Analysis
@@ -460,6 +432,7 @@ final class MainViewModel: ObservableObject {
             // We removed the nested one. So it should be the SAME type.
             self.currentItems[validIndex].analysisStatus = analysis.status
             self.currentItems[validIndex].analysisDescription = analysis.description
+            self.currentItems[validIndex].analysisConsequences = analysis.consequences // Map consequences
             self.currentItems[validIndex].safeToDelete = analysis.safeToDelete
         }
     }
@@ -484,6 +457,7 @@ final class MainViewModel: ObservableObject {
                 if let validIndex = self.currentItems.firstIndex(where: { $0.id == item.id }) {
                     self.currentItems[validIndex].analysisStatus = analysis.status
                     self.currentItems[validIndex].analysisDescription = analysis.description
+                    self.currentItems[validIndex].analysisConsequences = analysis.consequences // Map consequences
                     self.currentItems[validIndex].safeToDelete = analysis.safeToDelete
                 }
             }

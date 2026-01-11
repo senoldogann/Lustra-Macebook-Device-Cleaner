@@ -1,0 +1,64 @@
+/* 
+  Localizable.strings
+  MacCleaner (Lustra)
+
+  Enterprise-ready localization file
+  Copyright © 2026. All rights reserved.
+*/
+
+// MARK: - General
+"app.name" = "Lustra";
+"app.tagline" = "Mac Storage Optimizer";
+
+// MARK: - Welcome View
+"welcome.title" = "Welcome to Lustra";
+"welcome.subtitle" = "Your intelligent Mac storage manager";
+"welcome.startScan" = "Start Full Scan";
+"welcome.scanDescription" = "Analyze your storage to find junk files and large items";
+
+// MARK: - Scanning
+"scan.initializing" = "Initializing...";
+"scan.findingLargestFiles" = "Finding Largest Files...";
+"scan.complete" = "Scan Complete";
+
+// MARK: - Categories
+"category.systemJunk" = "System Junk";
+"category.userLibrary" = "User Library";
+"category.downloads" = "Downloads";
+"category.containers" = "App Containers & Misc";
+"category.desktop" = "Desktop";
+"category.media" = "Media & Photos";
+"category.documents" = "Documents";
+"category.applications" = "Applications";
+
+// MARK: - Smart Check
+"smartCheck.title" = "Smart Check Results";
+"smartCheck.notAnalyzed" = "Not analyzed";
+"smartCheck.analyzing" = "Analyzing...";
+"smartCheck.safe" = "Safe";
+"smartCheck.review" = "Review";
+"smartCheck.unknown" = "Unknown";
+"smartCheck.consequences" = "Consequences:";
+"smartCheck.safeToDelete" = "Safe to delete:";
+"smartCheck.yes" = "Yes";
+"smartCheck.no" = "No";
+"smartCheck.recommendation" = "Recommendation: Manual review suggested.";
+"smartCheck.noFeedback" = "No detailed feedback provided.";
+
+// MARK: - Actions
+"action.delete" = "Delete";
+"action.cancel" = "Cancel";
+"action.selectAll" = "Select All";
+"action.deselectAll" = "Deselect All";
+"action.analyze" = "Analyze";
+"action.refresh" = "Refresh";
+
+// MARK: - Confirmation
+"confirm.deleteTitle" = "Are you sure?";
+"confirm.deleteSingle" = "Are you sure you want to move '%@' to the Trash?";
+"confirm.deleteMultiple" = "This will move %d items (%@) to the Trash.";
+
+// MARK: - Errors
+"error.apiMissing" = "Missing API Configuration";
+"error.analysisUnavailable" = "Analysis Service Unavailable";
+"error.tryAgain" = "Try again later";

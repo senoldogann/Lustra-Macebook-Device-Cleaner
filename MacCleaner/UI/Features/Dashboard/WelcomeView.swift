@@ -5,12 +5,11 @@ struct WelcomeView: View {
     @ObservedObject var viewModel: MainViewModel
     @ObservedObject private var permissionManager = PermissionManager.shared
     
-    // Animation states
-    @State private var progressGlow = false
-    @State private var shimmerOffset: CGFloat = -200
+    @State private var meshAnimate = false
     @State private var currentTipIndex = 0
+    @State private var isHoveringScan = false
+    private let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
     
-    // Scanning tips that rotate (icon, text)
     private let scanningTips: [(icon: String, text: String)] = [
         ("magnifyingglass", "Analyzing every folder and file..."),
         ("internaldrive", "Scan speed varies based on disk size"),
@@ -19,205 +18,248 @@ struct WelcomeView: View {
         ("bolt.fill", "Larger disks may take longer")
     ]
     
-    private let timer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
-    
     var body: some View {
-        VStack(spacing: 40) {
-            // Header
-            Text("Lustra")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(AppTheme.secondaryText)
-                .padding(.top, 20)
+        ZStack {
+            // 1. Background Layer
+            AppTheme.background.ignoresSafeArea()
             
-            Spacer()
+            // Animated Mesh Gradient for depth
+            AnimatedMeshBackground()
+                .opacity(0.4)
+                .ignoresSafeArea()
             
-            // Main Card
-            VStack(spacing: 0) {
-                // Top section - Disk info
-                HStack(alignment: .top) {
-                    // Disk Icon
-                    Image(systemName: "internaldrive.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(AppTheme.accent)
-                        .frame(width: 64, height: 64)
-                        .background(AppTheme.background)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Macintosh HD")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppTheme.primaryText)
+            // 2. Main Content
+            HStack(spacing: 0) {
+                // Left Panel: Controls & Info
+                VStack(alignment: .leading, spacing: 0) {
+                    // Logo Header
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.terracotta)
+                            .shadow(color: AppTheme.terracotta.opacity(0.5), radius: 10)
                         
-                        Text(getDiskSpaceString())
-                            .font(.system(size: 14))
-                            .foregroundColor(AppTheme.secondaryText)
+                        Text("Lustra")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppTheme.primaryText)
                     }
+                    .padding(.top, 40)
+                    .padding(.leading, 180)
                     
                     Spacer()
                     
-                    // Button or Progress
-                    if viewModel.appState == .scanning {
-                        VStack(alignment: .trailing, spacing: 6) {
-                            // Progress bar
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(AppTheme.cardBackground)
-                                    .frame(width: 160, height: 8)
-                                
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [AppTheme.terracotta, AppTheme.terracotta.opacity(0.7)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: max(8, 160 * viewModel.scanProgress), height: 8)
-                                    .shadow(color: AppTheme.terracotta.opacity(progressGlow ? 0.8 : 0.4), radius: progressGlow ? 8 : 4)
-                                
-                                // Shimmer
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [.clear, .white.opacity(0.3), .clear],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: 50, height: 8)
-                                    .offset(x: shimmerOffset)
-                                    .mask(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .frame(width: max(8, 160 * viewModel.scanProgress), height: 8)
-                                    )
-                            }
-                            .frame(width: 160, height: 8)
-                            .onAppear {
-                                withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                                    progressGlow = true
-                                }
-                                withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                                    shimmerOffset = 160
-                                }
-                            }
+                    // Center Info Area
+                    VStack(alignment: .leading, spacing: 32) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Professional Mac Care")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppTheme.terracotta)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(AppTheme.terracotta.opacity(0.1))
+                                .cornerRadius(20)
                             
-                            HStack(spacing: 6) {
-                                Text("\(Int(viewModel.scanProgress * 100))%")
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                    .foregroundColor(AppTheme.terracotta)
+                            Text("Keep your Mac\nrunning at its best.")
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(AppTheme.primaryText)
+                                .lineSpacing(-2)
+                            
+                            Text("Intelligent scanning identifies junk, duplicates, and large files that are slowing down your system.")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.secondaryText)
+                                .frame(maxWidth: 400)
+                        }
+                        
+                        // Disk Status Card
+                        HStack(spacing: 20) {
+                            StorageMiniChart()
+                                .frame(width: 50, height: 50)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Macintosh HD")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(AppTheme.primaryText)
+                                
+                                Text(getDiskSpaceString())
+                                    .font(.system(size: 13))
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+                        }
+                        .padding(20)
+                        .background(AppTheme.cardBackground.opacity(0.5))
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        )
+                        
+                        // Action Button
+                        if viewModel.appState == .scanning {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Scanning System...")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(AppTheme.terracotta)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(Int(viewModel.scanProgress * 100))%")
+                                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                        .foregroundColor(AppTheme.terracotta)
+                                }
+                                .frame(width: 320)
+                                
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(AppTheme.cardBackground)
+                                        .frame(width: 320, height: 6)
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(AppTheme.terracotta)
+                                        .frame(width: 320 * viewModel.scanProgress, height: 6)
+                                        .shadow(color: AppTheme.terracotta.opacity(0.5), radius: 10)
+                                }
                                 
                                 if let scanningCat = viewModel.currentlyScanningCategory {
-                                    Text("•")
-                                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                                    
-                                    Text(scanningCat)
-                                        .font(.system(size: 11))
+                                    Text("Analyzing: \(scanningCat)")
+                                        .font(.system(size: 12))
                                         .foregroundColor(AppTheme.secondaryText)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .animation(.easeInOut(duration: 0.3), value: viewModel.currentlyScanningCategory)
-                        }
-                        .frame(height: 44)
-                    } else {
-                        if permissionManager.hasFullDiskAccess {
-                            AnimatedScanButton {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                    viewModel.startFullScan()
+                                        .transition(.opacity)
                                 }
                             }
                         } else {
-                            Button(action: {
-                                Task {
-                                    _ = await PermissionManager.shared.requestAccess()
+                            if permissionManager.hasFullDiskAccess {
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        viewModel.startFullScan()
+                                    }
+                                }) {
+                                    Text("Start Full Scan")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(width: 200, height: 50)
+                                        .background(
+                                            ZStack {
+                                                AppTheme.terracotta
+                                                if isHoveringScan {
+                                                    Color.white.opacity(0.1)
+                                                }
+                                            }
+                                        )
+                                        .cornerRadius(25)
+                                        .shadow(color: AppTheme.terracotta.opacity(isHoveringScan ? 0.5 : 0.3), radius: isHoveringScan ? 20 : 15, x: 0, y: isHoveringScan ? 12 : 10)
+                                        .scaleEffect(isHoveringScan ? 1.05 : 1.0)
                                 }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "lock.open.fill")
-                                        .font(.system(size: 14))
-                                    Text("Grant Access")
+                                .buttonStyle(PlainButtonStyle())
+                                .onHover { hovering in
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        isHoveringScan = hovering
+                                    }
+                                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                                 }
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 160, height: 42)
-                                .background(
-                                    LinearGradient(
-                                        colors: [AppTheme.terracotta, AppTheme.terracotta.opacity(0.85)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .cornerRadius(10)
-                                .shadow(color: AppTheme.terracotta.opacity(0.4), radius: 8, x: 0, y: 4)
+                            } else {
+                                Button(action: {
+                                    Task {
+                                        _ = await PermissionManager.shared.requestAccess()
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "key.fill")
+                                        Text("Grant Full Disk Access")
+                                    }
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 240, height: 50)
+                                    .background(AppTheme.darkGray)
+                                    .cornerRadius(25)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(.plain)
-                            .help("Grant access to Home folder to scan personal files.")
+                        }
+                    }
+
+                    .padding(.leading, 180)
+                    
+                    Spacer()
+                    
+                    // Bottom rotating tips
+                    if viewModel.appState == .scanning {
+                        HStack(spacing: 12) {
+                            Image(systemName: scanningTips[currentTipIndex].icon)
+                                .foregroundColor(AppTheme.terracotta)
+                                .font(.system(size: 14))
+                            
+                            Text(scanningTips[currentTipIndex].text)
+                                .font(.system(size: 13))
+                                .foregroundColor(AppTheme.secondaryText)
+                                .id(currentTipIndex)
+                                .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .move(edge: .top).combined(with: .opacity)))
+                        }
+                        .padding(.leading, 180)
+                        .padding(.bottom, 60)
+                        .onReceive(timer) { _ in
+                            withAnimation(.easeInOut(duration: 0.8)) {
+                                currentTipIndex = (currentTipIndex + 1) % scanningTips.count
+                            }
                         }
                     }
                 }
-                .padding(28)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                // Bottom section - Animated tips (only during scanning)
-                if viewModel.appState == .scanning {
-                    Divider()
-                        .background(AppTheme.secondaryText.opacity(0.1))
+                // Right Panel: Visual Animation + Feature Cards
+                VStack(spacing: 32) {
+                    Spacer()
                     
-                    HStack(spacing: 10) {
-                        Image(systemName: scanningTips[currentTipIndex].icon)
-                            .font(.system(size: 14))
-                            .foregroundColor(AppTheme.accent)
-                            .frame(width: 20)
-                        
-                        Text(scanningTips[currentTipIndex].text)
-                            .font(.system(size: 13))
-                            .foregroundColor(AppTheme.secondaryText)
-                            .animation(.easeInOut(duration: 0.5), value: currentTipIndex)
-                            .id(currentTipIndex)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    .onReceive(timer) { _ in
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            currentTipIndex = (currentTipIndex + 1) % scanningTips.count
+                    // Main Animation
+                    ScanningAnimation(isScanning: viewModel.appState == .scanning)
+                        .frame(width: 280, height: 280)
+                    
+                    // Feature Cards Grid (only show when not scanning)
+                    if viewModel.appState != .scanning {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            FeatureCard(
+                                icon: "trash.fill",
+                                title: "Smart Cleanup",
+                                description: "AI-powered junk detection",
+                                color: AppTheme.terracotta
+                            )
+                            FeatureCard(
+                                icon: "bolt.fill",
+                                title: "Fast Scan",
+                                description: "Optimized for speed",
+                                color: Color(hex: "7ED321")
+                            )
+                            FeatureCard(
+                                icon: "shield.checkered",
+                                title: "Safe Delete",
+                                description: "Never lose important files",
+                                color: Color(hex: "4A90E2")
+                            )
+                            FeatureCard(
+                                icon: "chart.pie.fill",
+                                title: "Visual Analysis",
+                                description: "See what takes space",
+                                color: Color(hex: "9B59B6")
+                            )
                         }
+                        .padding(.horizontal, 40)
+                        .frame(maxWidth: 420)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
-                }
-            }
-            .frame(width: 540)
-            .background(
-                ZStack {
-                    AppTheme.cardBackground
                     
-                    LinearGradient(
-                        colors: [AppTheme.accent.opacity(0.03), .clear],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    Spacer()
                 }
-            )
-            .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.4), radius: 30, x: 0, y: 15)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(
-                        LinearGradient(
-                            colors: [AppTheme.secondaryText.opacity(0.15), AppTheme.secondaryText.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
+                .frame(maxWidth: .infinity)
+                .background(
+                    RadialGradient(
+                        colors: [AppTheme.terracotta.opacity(0.05), .clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 300
                     )
-            )
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.appState)
-            
-            Spacer()
+                )
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppTheme.background)
     }
     
     private func getDiskSpaceString() -> String {
@@ -234,72 +276,106 @@ struct WelcomeView: View {
     }
 }
 
-// MARK: - Animated Scan Button
-struct AnimatedScanButton: View {
-    let action: () -> Void
-    @State private var isHovered = false
-    @State private var isPressed = false
-    @State private var pulseAnimation = false
+// MARK: - Subcomponents
+
+struct StorageMiniChart: View {
+    @State private var animate = false
+    @State private var isHovering = false
     
     var body: some View {
-        Button(action: action) {
-            ZStack {
-                // Pulse ring
-                Circle()
-                    .stroke(AppTheme.terracotta.opacity(pulseAnimation ? 0 : 0.5), lineWidth: 2)
-                    .frame(width: pulseAnimation ? 120 : 100, height: pulseAnimation ? 120 : 100)
-                    .scaleEffect(isHovered ? 1.1 : 1.0)
-                
-                // Main button
-                Text("Scan")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 110, height: 44)
-                    .background(
-                        ZStack {
-                            LinearGradient(
-                                colors: [AppTheme.terracotta, AppTheme.terracotta.opacity(0.85)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            
-                            if isHovered {
-                                LinearGradient(
-                                    colors: [.white.opacity(0.2), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            }
-                        }
-                    )
-                    .cornerRadius(10)
-                    .shadow(color: AppTheme.terracotta.opacity(isHovered ? 0.6 : 0.4), radius: isHovered ? 12 : 8, x: 0, y: isHovered ? 6 : 4)
-                    .scaleEffect(isPressed ? 0.95 : (isHovered ? 1.02 : 1.0))
+        ZStack {
+            Circle()
+                .stroke(AppTheme.secondaryText.opacity(0.1), lineWidth: 4)
+            
+            Circle()
+                .trim(from: 0, to: animate ? 0.75 : 0)
+                .stroke(isHovering ? AppTheme.accent : AppTheme.terracotta, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .shadow(color: AppTheme.terracotta.opacity(isHovering ? 0.6 : 0), radius: 5)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 1.5, dampingFraction: 0.8).delay(0.5)) {
+                animate = true
             }
         }
-        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHovering = hovering
+            }
+        }
+    }
+}
+
+struct AnimatedMeshBackground: View {
+    @State private var animate = false
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(AppTheme.terracotta.opacity(0.1))
+                .frame(width: 600, height: 600)
+                .blur(radius: 100)
+                .offset(x: animate ? 100 : -100, y: animate ? -50 : 50)
+            
+            Circle()
+                .fill(Color.blue.opacity(0.05)) // Subtle secondary color for depth
+                .frame(width: 500, height: 500)
+                .blur(radius: 80)
+                .offset(x: animate ? -150 : 150, y: animate ? 100 : -100)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 10).repeatForever(autoreverses: true)) {
+                animate.toggle()
+            }
+        }
+    }
+}
+
+// MARK: - Feature Card Component
+struct FeatureCard: View {
+    let icon: String
+    let title: String
+    let description: String
+    let color: Color
+    
+    @State private var isHovered = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            
+            Text(title)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(AppTheme.primaryText)
+            
+            Text(description)
+                .font(.system(size: 11))
+                .foregroundColor(AppTheme.secondaryText)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(AppTheme.cardBackground.opacity(isHovered ? 0.8 : 0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(isHovered ? 0.3 : 0.1), lineWidth: 1)
+        )
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .shadow(color: color.opacity(isHovered ? 0.2 : 0), radius: 10)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isHovered = hovering
-            }
-            if hovering {
-                NSCursor.pointingHand.push()
-            } else {
-                NSCursor.pop()
-            }
-        }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) { isPressed = true }
-                }
-                .onEnded { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) { isPressed = false }
-                }
-        )
-        .onAppear {
-            withAnimation(Animation.easeOut(duration: 1.5).repeatForever(autoreverses: false)) {
-                pulseAnimation = true
             }
         }
     }
