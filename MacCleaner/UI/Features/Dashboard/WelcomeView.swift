@@ -444,9 +444,7 @@ struct UpdateBanner: View {
             Spacer()
             
             Button(action: {
-                if let url = URL(string: version.downloadURL) {
-                    NSWorkspace.shared.open(url)
-                }
+                UpdateService.shared.downloadAndInstall()
             }) {
                 Text("Update Now")
                     .font(.system(size: 12, weight: .bold))
