@@ -31,6 +31,12 @@
 3.  Drag **Lustra** to your Applications folder.
 4.  Launch the app and enjoy!
 
+> **Note:** If you see a warning saying *"Lustra can't be opened..."*:
+> 1.  Right-click (or Control-click) the app icon.
+> 2.  Select **Open**.
+> 3.  Click **Open** in the dialog box.
+> *(This happens because the app is not signed with a paid Apple Developer certificate yet.)*
+
 ---
 
 ## 🚀 Key Features
@@ -103,5 +109,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 <div align="center">
-    <sub>Designed & Built with ❤️ for macOS</sub>
+    <sub>Designed by Senol Dogan & Built with ❤️ for macOS</sub>
 </div>
