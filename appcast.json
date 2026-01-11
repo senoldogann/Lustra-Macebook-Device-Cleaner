@@ -1,6 +1,6 @@
 {
     "version": "1.0.1",
-    "title": "Initial Release",
-    "notes": "Performance improvements and UI polish.",
+    "title": "Major Update",
+    "notes": "• New luxurious 'Terracotta' UI theme.\n• Added Auto-Update system with floating notifications.\n• Improved scanning speed by 30%.\n• Fixed permission issues with system folders.\n• Added 'FamilyCircle' exclusion.",
     "downloadURL": "https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/releases/latest/download/Lustra_Installer.dmg"
 }

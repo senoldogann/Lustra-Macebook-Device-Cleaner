@@ -396,6 +396,7 @@ struct FeatureCard: View {
 
 struct UpdateBanner: View {
     let version: AppVersion
+    @State private var showChangelog = false
     
     var body: some View {
         HStack(spacing: 16) {
@@ -410,7 +411,7 @@ struct UpdateBanner: View {
                     .foregroundColor(AppTheme.terracotta)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text("New Version Available")
                         .font(.system(size: 13, weight: .bold))
@@ -425,10 +426,19 @@ struct UpdateBanner: View {
                         .cornerRadius(6)
                 }
                 
-                Text(version.notes)
-                    .font(.system(size: 12))
-                    .foregroundColor(AppTheme.secondaryText)
-                    .lineLimit(1)
+                Button(action: { showChangelog.toggle() }) {
+                    HStack(spacing: 4) {
+                        Text("See what's new")
+                            .font(.system(size: 11, weight: .medium))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(AppTheme.terracotta)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .popover(isPresented: $showChangelog, arrowEdge: .bottom) {
+                    ChangelogPopover(version: version)
+                }
             }
             
             Spacer()
@@ -460,8 +470,6 @@ struct UpdateBanner: View {
             ZStack {
                 AppTheme.cardBackground
                     .opacity(0.95)
-                
-                // Frosted glass effect
                 VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
                     .opacity(0.2)
             }
@@ -479,7 +487,34 @@ struct UpdateBanner: View {
                 )
         )
         .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
-        .frame(width: 460)
+        .frame(width: 480)
+    }
+}
+
+struct ChangelogPopover: View {
+    let version: AppVersion
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("What's New in v\(version.version)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(AppTheme.primaryText)
+                Spacer()
+            }
+            .padding(.bottom, 4)
+            
+            ScrollView {
+                Text(version.notes)
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .lineSpacing(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(16)
+        .frame(width: 300, height: 200)
+        .background(AppTheme.cardBackground)
     }
 }
 
