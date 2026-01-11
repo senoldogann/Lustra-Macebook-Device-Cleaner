@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import AppKit
+import OSLog
 
 struct AppVersion: Codable {
     let version: String
@@ -19,26 +20,25 @@ class UpdateService: ObservableObject {
     private let updateURL = URL(string: "https://gist.githubusercontent.com/senoldogann/a19b889926ee37d7473d3805eb7af1df/raw/076b8cdfd5d53afdf285fe9a3c831d1da8678ec6/appcast.json")!
     
     private var cancellables = Set<AnyCancellable>()
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "MacCleaner", category: "UpdateService")
     
     private init() {
         checkForUpdates()
     }
     
     func checkForUpdates() {
-        print("DEBUG: Checking for updates at \(updateURL.absoluteString)")
+        logger.info("Checking for updates at \(self.updateURL.absoluteString)")
         
         URLSession.shared.dataTask(with: updateURL) { data, response, error in
             if let error = error {
-                print("DEBUG: Network error: \(error.localizedDescription)")
+                self.logger.error("Network error: \(error.localizedDescription)")
                 return
             }
             
-            guard let data = data, let rawString = String(data: data, encoding: .utf8) else {
-                print("DEBUG: No data received")
+            guard let data = data else {
+                self.logger.error("No data received")
                 return
             }
-            
-            print("DEBUG: Raw response: \(rawString)") // KEY DEBUG LINE
             
             do {
                 let versionInfo = try JSONDecoder().decode(AppVersion.self, from: data)
@@ -46,32 +46,35 @@ class UpdateService: ObservableObject {
                     self.validateVersion(versionInfo)
                 }
             } catch {
-                print("DEBUG: JSON Decode Error: \(error)")
+                self.logger.error("JSON Decode Error: \(error.localizedDescription)")
+                if let rawString = String(data: data, encoding: .utf8) {
+                    self.logger.debug("Raw response: \(rawString)")
+                }
             }
         }.resume()
     }
     
     private func validateVersion(_ remoteVersion: AppVersion) {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        print("DEBUG: Update Check - Remote: \(remoteVersion.version), Local: \(currentVersion)")
+        logger.info("Comparing versions - Remote: \(remoteVersion.version), Local: \(currentVersion)")
         
         if remoteVersion.version.compare(currentVersion, options: .numeric) == .orderedDescending {
-            print("DEBUG: Update Available!")
+            logger.notice("New update available: \(remoteVersion.version)")
             self.latestVersion = remoteVersion
             self.isUpdateAvailable = true
         } else {
-            print("DEBUG: App is up to date.")
+            logger.info("App is up to date.")
         }
     }
     
     func downloadAndInstall() {
         guard let urlString = latestVersion?.downloadURL, let url = URL(string: urlString) else { return }
-        print("DEBUG: Starting seamless update download from \(urlString)")
+        logger.notice("Starting seamless update download from \(urlString)")
         
         // 1. Download to temporary file
         let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
             guard let localURL = localURL, error == nil else {
-                print("DEBUG: Download failed: \(error?.localizedDescription ?? "Unknown error")")
+                self.logger.error("Download failed: \(error?.localizedDescription ?? "Unknown error")")
                 return
             }
             
@@ -83,13 +86,13 @@ class UpdateService: ObservableObject {
                 try? FileManager.default.removeItem(at: targetURL)
                 try FileManager.default.moveItem(at: localURL, to: targetURL)
                 
-                print("DEBUG: Downloaded update to \(targetURL.path)")
+                self.logger.info("Downloaded update to \(targetURL.path)")
                 
                 // 2. Execute Shell Script
                 try self.runUpdaterScript(dmgPath: targetURL.path)
                 
             } catch {
-                print("DEBUG: Update installation failed: \(error)")
+                self.logger.error("Update installation failed: \(error.localizedDescription)")
             }
         }
         task.resume()
@@ -104,9 +107,8 @@ class UpdateService: ObservableObject {
             try updaterScript.write(to: scriptPath, atomically: true, encoding: .utf8)
             // Make executable
             try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: scriptPath.path)
-            print("DEBUG: Wrote embedded updater script to \(scriptPath.path)")
         } catch {
-            print("DEBUG: Failed to write updater script: \(error)")
+            logger.error("Failed to write updater script: \(error.localizedDescription)")
             throw error
         }
         
@@ -114,7 +116,7 @@ class UpdateService: ObservableObject {
         let appName = "Lustra" // Must match the .app name
         let destPath = "/Applications"
         
-        print("DEBUG: Launching updater script: \(scriptPath.path)")
+        logger.info("Launching updater script: \(scriptPath.path)")
         
         // 2. Run Script in Background
         let process = Process()
