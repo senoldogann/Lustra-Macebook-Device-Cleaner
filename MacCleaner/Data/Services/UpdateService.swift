@@ -14,8 +14,8 @@ class UpdateService: ObservableObject {
     @Published var latestVersion: AppVersion?
     @Published var isUpdateAvailable: Bool = false
     
-    // GitHub raw content URL for the appcast file
-    private let updateURL = URL(string: "https://raw.githubusercontent.com/senoldogann/Lustra-Macebook-Device-Cleaner/main/appcast.json")!
+    // GitHub Gist raw content URL for the appcast file (Public access)
+    private let updateURL = URL(string: "https://gist.githubusercontent.com/senoldogann/a19b889926ee37d7473d3805eb7af1df/raw/076b8cdfd5d53afdf285fe9a3c831d1da8678ec6/appcast.json")!
     
     private var cancellables = Set<AnyCancellable>()
     
