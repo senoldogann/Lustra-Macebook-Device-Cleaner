@@ -15,5 +15,11 @@ struct MacCleanerApp: App {
         Settings {
             SettingsView()
         }
+        
+        // Menubar Utility
+        MenuBarExtra("Lustra", systemImage: "sparkles") {
+            MenubarView()
+        }
+        .menuBarExtraStyle(.window) // Allows complex SwiftUI view
     }
 }

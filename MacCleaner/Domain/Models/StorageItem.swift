@@ -30,11 +30,17 @@ struct StorageItem: Identifiable, Hashable, Codable, Sendable {
         ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
     
-    var formattedDate: String {
-        guard let date = modificationDate else { return "Unknown" }
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        return formatter.string(from: date)
+        formatter.timeStyle = .none
+        formatter.locale = .current // Ensure it uses current locale
+        return formatter
+    }()
+    
+    var formattedDate: String {
+        guard let date = modificationDate else { return "-" }
+        return Self.dateFormatter.string(from: date)
     }
     
 }

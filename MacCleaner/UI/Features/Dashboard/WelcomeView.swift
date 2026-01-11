@@ -10,12 +10,12 @@ struct WelcomeView: View {
     @State private var isHoveringScan = false
     private let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
     
-    private let scanningTips: [(icon: String, text: String)] = [
-        ("magnifyingglass", "Analyzing every folder and file..."),
-        ("internaldrive", "Scan speed varies based on disk size"),
-        ("chart.bar.doc.horizontal", "Deep scanning for accurate results"),
-        ("trash", "Finding junk files and caches..."),
-        ("bolt.fill", "Larger disks may take longer")
+    private let scanningTips: [(icon: String, text: LocalizedStringKey)] = [
+        ("magnifyingglass", "tip_analyzing"),
+        ("internaldrive", "tip_speed"),
+        ("chart.bar.doc.horizontal", "tip_deep"),
+        ("trash", "tip_junk"),
+        ("bolt.fill", "tip_large")
     ]
     
     var body: some View {
@@ -51,7 +51,7 @@ struct WelcomeView: View {
                     // Center Info Area
                     VStack(alignment: .leading, spacing: 32) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Professional Mac Care")
+                            Text("professional_mac_care")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(AppTheme.terracotta)
                                 .padding(.horizontal, 12)
@@ -59,12 +59,12 @@ struct WelcomeView: View {
                                 .background(AppTheme.terracotta.opacity(0.1))
                                 .cornerRadius(20)
                             
-                            Text("Keep your Mac\nrunning at its best.")
+                            Text("hero_title")
                                 .font(.system(size: 48, weight: .bold))
                                 .foregroundColor(AppTheme.primaryText)
                                 .lineSpacing(-2)
                             
-                            Text("Intelligent scanning identifies junk, duplicates, and large files that are slowing down your system.")
+                            Text("hero_subtitle")
                                 .font(.system(size: 16))
                                 .foregroundColor(AppTheme.secondaryText)
                                 .frame(maxWidth: 400)
@@ -97,7 +97,7 @@ struct WelcomeView: View {
                         if viewModel.appState == .scanning {
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
-                                    Text("Scanning System...")
+                                    Text("scanning_system")
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(AppTheme.terracotta)
                                     
@@ -121,7 +121,7 @@ struct WelcomeView: View {
                                 }
                                 
                                 if let scanningCat = viewModel.currentlyScanningCategory {
-                                    Text("Analyzing: \(scanningCat)")
+                                    Text(viewModel.scanProgress > 0 ? String(format: NSLocalizedString("analyzing_category", comment: ""), scanningCat) : "")
                                         .font(.system(size: 12))
                                         .foregroundColor(AppTheme.secondaryText)
                                         .transition(.opacity)
@@ -134,7 +134,7 @@ struct WelcomeView: View {
                                         viewModel.startFullScan()
                                     }
                                 }) {
-                                    Text("Start Full Scan")
+                                    Text("start_full_scan")
                                         .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(.white)
                                         .frame(width: 200, height: 50)
@@ -165,7 +165,7 @@ struct WelcomeView: View {
                                 }) {
                                     HStack(spacing: 8) {
                                         Image(systemName: "key.fill")
-                                        Text("Grant Full Disk Access")
+                                        Text("grant_full_disk_access")
                                     }
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.white)
@@ -219,26 +219,26 @@ struct WelcomeView: View {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                             FeatureCard(
                                 icon: "trash.fill",
-                                title: "Smart Cleanup",
-                                description: "AI-powered junk detection",
+                                title: "feat_smart_cleanup",
+                                description: "feat_smart_cleanup_desc",
                                 color: AppTheme.terracotta
                             )
                             FeatureCard(
                                 icon: "bolt.fill",
-                                title: "Fast Scan",
-                                description: "Optimized for speed",
+                                title: "feat_fast_scan",
+                                description: "feat_fast_scan_desc",
                                 color: Color(hex: "7ED321")
                             )
                             FeatureCard(
                                 icon: "shield.checkered",
-                                title: "Safe Delete",
-                                description: "Never lose important files",
+                                title: "feat_safe_delete",
+                                description: "feat_safe_delete_desc",
                                 color: Color(hex: "4A90E2")
                             )
                             FeatureCard(
                                 icon: "chart.pie.fill",
-                                title: "Visual Analysis",
-                                description: "See what takes space",
+                                title: "feat_visual_analysis",
+                                description: "feat_visual_analysis_desc",
                                 color: Color(hex: "9B59B6")
                             )
                         }
@@ -280,7 +280,8 @@ struct WelcomeView: View {
         let totalStr = ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
         let freeStr = ByteCountFormatter.string(fromByteCount: free, countStyle: .file)
         
-        return "\(freeStr) available of \(totalStr)"
+        // Ensure "disk_capacity_format" is in Localizable.strings as "%@ available of %@"
+        return String(format: NSLocalizedString("disk_capacity_format", comment: ""), freeStr, totalStr)
     }
 }
 
@@ -342,8 +343,8 @@ struct AnimatedMeshBackground: View {
 // MARK: - Feature Card Component
 struct FeatureCard: View {
     let icon: String
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let color: Color
     
     @State private var isHovered = false
@@ -413,7 +414,7 @@ struct UpdateBanner: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text("New Version Available")
+                    Text("new_version_available")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(AppTheme.primaryText)
                     
@@ -428,7 +429,7 @@ struct UpdateBanner: View {
                 
                 Button(action: { showChangelog.toggle() }) {
                     HStack(spacing: 4) {
-                        Text("See what's new")
+                        Text("see_whats_new")
                             .font(.system(size: 11, weight: .medium))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .bold))
@@ -446,7 +447,7 @@ struct UpdateBanner: View {
             Button(action: {
                 UpdateService.shared.downloadAndInstall()
             }) {
-                Text("Update Now")
+                Text("update_now")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 20)
@@ -495,7 +496,7 @@ struct ChangelogPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("What's New in v\(version.version)")
+                Text(String(format: NSLocalizedString("whats_new_version", comment: ""), version.version))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(AppTheme.primaryText)
                 Spacer()

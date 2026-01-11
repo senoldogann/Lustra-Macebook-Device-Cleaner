@@ -29,22 +29,26 @@ struct MainView: View {
         .background(AppTheme.background)
         .preferredColorScheme(.dark)
         .confirmationDialog(
-            "Are you sure?",
+            Text(NSLocalizedString("are_you_sure_title", comment: "")),
             isPresented: $viewModel.showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(NSLocalizedString("delete_action", comment: ""), role: .destructive) {
                 viewModel.deleteSelectedItems()
             }
-            Button("Cancel", role: .cancel) {
+            Button(NSLocalizedString("cancel_action", comment: ""), role: .cancel) {
                 viewModel.itemToDelete = nil
             }
-        } message: {
-            if let item = viewModel.itemToDelete {
-                Text("Are you sure you want to move '\(item.name)' to the Trash?")
-            } else {
-                Text("This will move \(viewModel.selectedItemsCount) items (\(viewModel.formattedSelectedSize)) to the Trash.")
-            }
+        }
+        .alert(item: $viewModel.itemToDelete) { item in
+            Alert(
+                title: Text("are_you_sure_title"),
+                message: Text(String(format: NSLocalizedString("delete_item_confirmation", comment: ""), item.name)),
+                primaryButton: .destructive(Text("delete_action")) {
+                    viewModel.deleteItem(item)
+                },
+                secondaryButton: .cancel(Text("cancel_action"))
+            )
         }
         .alert(item: $viewModel.alertItem) { alert in
             Alert(
@@ -53,7 +57,6 @@ struct MainView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-    }
 }
 
 // MARK: - Premium Sidebar
@@ -184,13 +187,13 @@ struct DiskUsageMiniView: View {
             .frame(height: 6)
             
             HStack {
-                Text("\(ByteCountFormatter.string(fromByteCount: used, countStyle: .file)) used")
+                Text("\(ByteCountFormatter.string(fromByteCount: used, countStyle: .file)) \(NSLocalizedString("disk_used_suffix", comment: ""))")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(AppTheme.secondaryText)
                 
                 Spacer()
                 
-                Text("\(ByteCountFormatter.string(fromByteCount: total - used, countStyle: .file)) free")
+                Text("\(ByteCountFormatter.string(fromByteCount: total - used, countStyle: .file)) \(NSLocalizedString("disk_free_suffix", comment: ""))")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.7))
             }
@@ -282,17 +285,36 @@ struct PremiumDiscardSection: View {
                             .font(.system(size: 14))
                             .foregroundColor(viewModel.selectedItems.isEmpty ? AppTheme.secondaryText : AppTheme.accent)
                         
-                        Text("Discard")
+                        Text(NSLocalizedString("discard_section_title", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
+                            .fixedSize() // Force horizontal layout
                         
-                        if !viewModel.selectedItems.isEmpty {
-                            Text("\(viewModel.selectedItemsCount)")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
+                        if viewModel.selectedItemsCount > 0 {
+                            Text(String(format: NSLocalizedString("selected_count", comment: ""), viewModel.selectedItemsCount))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(AppTheme.accent)
                                 .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(AppTheme.accent))
+                                .padding(.vertical, 2)
+                                .background(AppTheme.accent.opacity(0.1))
+                                .cornerRadius(4)
+                            
+                            Button(action: { viewModel.autoSelectSafeItems() }) {
+                                Label(NSLocalizedString("smart_check", comment: ""), systemImage: "wand.and.stars")
+                                    .font(.system(size: 11))
+                                    .fixedSize()
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(AppTheme.accent)
+                            
+                            Button(action: { viewModel.clearSelection() }) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(AppTheme.secondaryText)
+                            }
+                            .buttonStyle(.plain)
+                            .help(NSLocalizedString("clear_selection", comment: ""))
+                            .buttonStyle(.plain)
                         }
                         
                         Spacer()
@@ -301,6 +323,7 @@ struct PremiumDiscardSection: View {
                             Text(viewModel.formattedSelectedSize)
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .foregroundColor(AppTheme.secondaryText)
+                                .fixedSize() // Prevent stacking
                         }
                         
                         Image(systemName: "chevron.right")
@@ -320,12 +343,13 @@ struct PremiumDiscardSection: View {
                     VStack(spacing: 12) {
                         if viewModel.selectedItems.isEmpty {
                             HStack {
-                                Image(systemName: "tray")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                                Text("No items selected")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(AppTheme.secondaryText)
+                                Text(String(format: NSLocalizedString("disk_used", comment: ""), ByteCountFormatter.string(fromByteCount: viewModel.usedDiskSize, countStyle: .file)))
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.secondaryText)
+                            Spacer()
+                            Text(String(format: NSLocalizedString("disk_free", comment: ""), ByteCountFormatter.string(fromByteCount: viewModel.totalDiskSize - viewModel.usedDiskSize, countStyle: .file)))
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.secondaryText)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 20)
@@ -363,7 +387,7 @@ struct PremiumDiscardSection: View {
                                 HStack {
                                     Image(systemName: "trash.fill")
                                         .font(.system(size: 12))
-                                    Text("Delete \(viewModel.selectedItemsCount) items")
+                                    Text(String(format: NSLocalizedString("delete_count_items", comment: ""), viewModel.selectedItemsCount))
                                         .font(.system(size: 13, weight: .semibold))
                                 }
                                 .foregroundColor(.white)
@@ -430,16 +454,16 @@ struct PremiumHeaderView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                
-                Image(systemName: "house.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                
-                Text(viewModel.selectedCategory?.name ?? "Home")
+                HStack(spacing: 6) {
+                    Text("home_breadcrumb")
+                        .font(.system(size: 13))
+                        .foregroundColor(AppTheme.secondaryText)
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(AppTheme.darkGray)
+                    
+                    Text(viewModel.selectedCategory?.name ?? "Home")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
             }
@@ -449,7 +473,7 @@ struct PremiumHeaderView: View {
             // Selection Toolbar
             if !viewModel.selectedItems.isEmpty {
                 HStack(spacing: 12) {
-                    Text("\(viewModel.selectedItemsCount) selected")
+                    Text(String(format: NSLocalizedString("selected_count", comment: ""), viewModel.selectedItemsCount))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(AppTheme.secondaryText)
                     
@@ -464,7 +488,7 @@ struct PremiumHeaderView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 11))
                             }
-                            Text("Smart Check")
+                            Text(NSLocalizedString("smart_check", comment: ""))
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundColor(AppTheme.primaryText)
@@ -487,18 +511,18 @@ struct PremiumHeaderView: View {
                     
                     // Delete Button
                     Button(action: { viewModel.confirmDelete() }) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: "trash.fill")
                                 .font(.system(size: 11))
-                            Text("Delete")
-                                .font(.system(size: 12, weight: .semibold))
+                            Text(NSLocalizedString("delete_action", comment: ""))
+                                .font(.system(size: 11, weight: .bold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(AppTheme.accent)
+                                .fill(AppTheme.accent) // Removed overlay/stroke for cleaner look as per user pref for "button"
                         )
                     }
                     .buttonStyle(.plain)
@@ -507,13 +531,13 @@ struct PremiumHeaderView: View {
                     }
                     
                     // Clear Selection
-                    Button(action: { viewModel.clearSelection() }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
+                    Button(action: { viewModel.backToWelcome() }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppTheme.secondaryText)
-                            .frame(width: 24, height: 24)
-                            .background(Circle().fill(AppTheme.darkerGray))
                     }
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(AppTheme.darkerGray))
                     .buttonStyle(.plain)
                     .onHover { inside in
                         if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
@@ -530,6 +554,7 @@ struct PremiumHeaderView: View {
                         )
                 )
             }
+        }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
@@ -562,7 +587,7 @@ struct PremiumCategoryInfoCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 12, weight: .semibold))
-                    Text("New Scan")
+                    Text(NSLocalizedString("new_scan", comment: ""))
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundColor(.white)
@@ -585,23 +610,23 @@ struct PremiumCategoryInfoCard: View {
     private func getCategoryDescription(_ id: String) -> String {
         switch id {
         case "system_junk":
-            return "System Data is often full of confusing cache files. We've identified these as safe to remove to reclaim free space."
+            return NSLocalizedString("cat_desc_system_junk", comment: "")
         case "user_library":
-            return "Contains app data and settings. Use Smart Check to translate technical names into plain English."
+            return NSLocalizedString("cat_desc_user_library", comment: "")
         case "downloads":
-            return "Files downloaded from the internet. Great place to find forgotten giants taking up space."
+            return NSLocalizedString("cat_desc_downloads", comment: "")
         case "desktop":
-            return "Files on your Desktop. Rapidly access and organize your workspace."
+            return NSLocalizedString("cat_desc_desktop", comment: "")
         case "documents":
-            return "Your personal documents. Review carefully before removing."
+            return NSLocalizedString("cat_desc_documents", comment: "")
         case "applications":
-            return "Installed applications. Remove unused apps to free up space."
+            return NSLocalizedString("cat_desc_applications", comment: "")
         case "other":
-            return "Miscellaneous files across your system."
+            return NSLocalizedString("cat_desc_other", comment: "")
         case "system":
-            return "System files and caches. Handle with care."
+            return NSLocalizedString("cat_desc_system", comment: "")
         default:
-            return "Files and folders in this location."
+            return NSLocalizedString("cat_desc_default", comment: "")
         }
     }
 }
@@ -636,11 +661,11 @@ struct PremiumItemsListView: View {
                             .foregroundColor(AppTheme.secondaryText.opacity(0.5))
                     }
                     
-                    Text("No items found")
+                    Text(NSLocalizedString("no_items_found", comment: ""))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(AppTheme.secondaryText)
                     
-                    Text("This category appears to be empty")
+                    Text(NSLocalizedString("empty_category_message", comment: ""))
                         .font(.system(size: 13))
                         .foregroundColor(AppTheme.secondaryText.opacity(0.7))
                 }
@@ -676,19 +701,19 @@ struct PremiumItemsListView: View {
                             if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                         }
                         
-                        Text("Name")
+                        Text(NSLocalizedString("col_name", comment: ""))
                             .padding(.leading, 16)
                         
                         Spacer()
                         
-                        Text("Status")
+                        Text(NSLocalizedString("col_status", comment: ""))
                             .frame(width: 160, alignment: .leading)
                         
-                        Text("Modified")
-                            .frame(width: 100, alignment: .trailing)
+                        Text(NSLocalizedString("col_modified", comment: ""))
+                            .frame(width: 90, alignment: .trailing)
                         
-                        Text("Size")
-                            .frame(width: 80, alignment: .trailing)
+                        Text(NSLocalizedString("col_size", comment: ""))
+                            .frame(width: 70, alignment: .trailing)
                             .padding(.trailing, 24)
                     }
                     .font(.system(size: 11, weight: .semibold))
@@ -840,13 +865,13 @@ struct PremiumItemRow: View {
             Text(item.formattedDate)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(AppTheme.secondaryText)
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 90, alignment: .trailing)
             
             // Size
             Text(item.formattedSize)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundColor(AppTheme.primaryText)
-                .frame(width: 80, alignment: .trailing)
+                .frame(width: 70, alignment: .trailing)
                 .padding(.trailing, 24)
         }
         .padding(.vertical, 12)
@@ -873,6 +898,7 @@ struct PremiumItemRow: View {
     }
 }
 
+
 struct PremiumAnalysisBadge: View {
     let item: StorageItem
     @State private var showDetails = false
@@ -884,7 +910,7 @@ struct PremiumAnalysisBadge: View {
                 Image(systemName: "questionmark.circle")
                     .font(.system(size: 12))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                Text("Not analyzed")
+                Text("status_not_analyzed")
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.5))
                 
@@ -892,17 +918,17 @@ struct PremiumAnalysisBadge: View {
                 ProgressView()
                     .controlSize(.small)
                     .tint(AppTheme.accent)
-                Text("Analyzing...")
+                Text("status_analyzing")
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.accent)
                 
             case .safe:
-                BadgeButton(title: "Safe", icon: "checkmark.shield.fill", color: AppTheme.safe) {
+                BadgeButton(title: NSLocalizedString("status_safe", comment: ""), icon: "checkmark.shield.fill", color: AppTheme.safe) {
                     showDetails.toggle()
                 }
                 
             case .review:
-                BadgeButton(title: "Review", icon: "exclamationmark.shield.fill", color: AppTheme.review) {
+                BadgeButton(title: NSLocalizedString("status_review", comment: ""), icon: "exclamationmark.shield.fill", color: AppTheme.review) {
                     showDetails.toggle()
                 }
                 
@@ -910,7 +936,7 @@ struct PremiumAnalysisBadge: View {
                 Image(systemName: "circle.slash")
                     .font(.system(size: 12))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.5))
-                Text("Unknown")
+                Text("status_unknown")
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.secondaryText.opacity(0.5))
             }
@@ -920,19 +946,21 @@ struct PremiumAnalysisBadge: View {
                 HStack {
                     Image(systemName: item.analysisStatus == .safe ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
                         .foregroundColor(item.analysisStatus == .safe ? AppTheme.safe : AppTheme.review)
-                    Text("Smart Check Results")
+                    Text("smart_check_results")
                         .font(.headline)
                 }
                 
                 Divider()
                 
-                Text(item.analysisDescription.isEmpty ? "No detailed feedback provided." : item.analysisDescription)
+                Divider()
+                
+                Text(item.analysisDescription.isEmpty ? NSLocalizedString("no_feedback", comment: "") : item.analysisDescription)
                     .font(.system(size: 13))
                     .foregroundColor(AppTheme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 
                 if !item.analysisConsequences.isEmpty {
-                    Text("Consequences:")
+                    Text("label_consequences")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(AppTheme.secondaryText)
                     
@@ -943,17 +971,17 @@ struct PremiumAnalysisBadge: View {
                 }
                 
                 HStack {
-                    Text("Safe to delete:")
+                    Text("label_safe_to_delete")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(AppTheme.secondaryText)
                     
-                    Text(item.safeToDelete ? "Yes" : "No")
+                    Text(item.safeToDelete ? NSLocalizedString("yes", comment: "") : NSLocalizedString("no", comment: ""))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(item.safeToDelete ? AppTheme.safe : AppTheme.review)
                 }
                 
                 if item.analysisStatus == .review {
-                    Text("Recommendation: Manual review suggested.")
+                    Text("recommendation_manual")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(AppTheme.terracotta)
                 }
@@ -1017,11 +1045,11 @@ struct PremiumFullDiskAccessBanner: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Full Disk Access Required")
+                Text("fda_required_title")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
                 
-                Text("Grant access to scan protected folders")
+                Text("fda_required_desc")
                     .font(.system(size: 12))
                     .foregroundColor(AppTheme.secondaryText)
             }
@@ -1029,7 +1057,7 @@ struct PremiumFullDiskAccessBanner: View {
             Spacer()
             
             Button(action: { viewModel.requestFullDiskAccess() }) {
-                Text("Open Settings")
+                Text("open_settings")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
@@ -1076,7 +1104,7 @@ struct PremiumBottomPanelView: View {
                         // Segmented Tab Control
                         HStack(spacing: 0) {
                             PremiumTabButton(
-                                title: "Treemap",
+                                title: NSLocalizedString("tab_treemap", comment: ""),
                                 icon: "square.grid.2x2",
                                 isActive: viewModel.selectedBottomTab == .treemap
                             ) {
@@ -1084,7 +1112,7 @@ struct PremiumBottomPanelView: View {
                             }
                             
                             PremiumTabButton(
-                                title: "Sunburst",
+                                title: NSLocalizedString("tab_sunburst", comment: ""),
                                 icon: "chart.pie",
                                 isActive: viewModel.selectedBottomTab == .sunburst
                             ) {
@@ -1122,7 +1150,7 @@ struct PremiumBottomPanelView: View {
                                 .font(.system(size: 14))
                                 .foregroundColor(AppTheme.accent)
                             
-                            Text("Largest Files")
+                            Text("tab_largest_files")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(AppTheme.primaryText)
                         }
@@ -1321,7 +1349,7 @@ struct PremiumSunburstView: View {
                 VStack(spacing: 2) {
                     Text("\(items.count)")
                         .font(.system(size: 18, weight: .bold))
-                    Text("Items")
+                    Text("label_items")
                         .font(.system(size: 9))
                         .foregroundColor(AppTheme.secondaryText)
                 }
@@ -1444,9 +1472,9 @@ struct PremiumTreemapView: View {
 
 // MARK: - Preview
 
-#Preview {
-    MainView()
-}
+// #Preview {
+//     MainView()
+// }
 
 struct PremiumChartTooltip: View {
     let item: StorageItem
@@ -1477,4 +1505,6 @@ struct PremiumChartTooltip: View {
         .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
         .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9)), removal: .opacity))
     }
+}
+
 }

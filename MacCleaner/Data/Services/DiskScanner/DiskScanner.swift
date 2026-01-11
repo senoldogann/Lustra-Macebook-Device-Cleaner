@@ -28,42 +28,42 @@ actor DiskScanner {
         return [
             StorageCategory(
                 id: "system_junk",
-                name: "System Junk",
+                name: NSLocalizedString("category_system_junk", comment: ""),
                 path: home.appendingPathComponent("Library/Caches")
             ),
             StorageCategory(
                 id: "user_library",
-                name: "User Library",
+                name: NSLocalizedString("category_user_library", comment: ""),
                 path: home.appendingPathComponent("Library/Application Support")
             ),
             StorageCategory(
                 id: "downloads",
-                name: "Downloads",
+                name: NSLocalizedString("category_downloads", comment: ""),
                 path: home.appendingPathComponent("Downloads")
             ),
             StorageCategory(
                 id: "containers",
-                name: "App Containers & Misc",
+                name: NSLocalizedString("category_containers", comment: ""),
                 path: home.appendingPathComponent("Library/Containers")
             ),
             StorageCategory(
                 id: "desktop",
-                name: "Desktop",
+                name: NSLocalizedString("category_desktop", comment: ""),
                 path: home.appendingPathComponent("Desktop")
             ),
             StorageCategory(
                 id: "media",
-                name: "Media & Photos",
+                name: NSLocalizedString("category_media", comment: ""),
                 path: home.appendingPathComponent("Movies")
             ),
             StorageCategory(
                 id: "documents",
-                name: "Documents",
+                name: NSLocalizedString("category_documents", comment: ""),
                 path: home.appendingPathComponent("Documents")
             ),
             StorageCategory(
                 id: "applications",
-                name: "Applications",
+                name: NSLocalizedString("category_applications", comment: ""),
                 path: URL(fileURLWithPath: "/Applications")
             )
         ]

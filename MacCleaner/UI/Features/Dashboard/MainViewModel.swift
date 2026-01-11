@@ -558,4 +558,22 @@ final class MainViewModel: ObservableObject {
             Logger.fileSystem.error("Failed to delete: \(error.localizedDescription)")
         }
     }
+    func backToWelcome() {
+        withAnimation {
+            appState = .welcome
+            currentItems = []
+            selectedItems = []
+            selectedCategory = nil
+            isScanning = false
+            scanProgress = 0
+            currentlyScanningCategory = nil
+        }
+    }
+    
+    func autoSelectSafeItems() {
+        withAnimation {
+            let safeItems = currentItems.filter { $0.analysisStatus == .safe }
+            selectedItems = Set(safeItems.map { $0.id })
+        }
+    }
 }

@@ -1,0 +1,129 @@
+/* App General */
+"app_name" = "Lustra";
+"quit_app" = "Çıkış";
+
+/* Main View */
+"are_you_sure_title" = "Emin misiniz?";
+"delete_action" = "Sil";
+"cancel_action" = "İptal";
+"delete_item_confirmation" = "'%@' öğesini Çöp Sepetine taşımak istediğinizden emin misiniz?";
+"delete_multiple_confirmation" = "Bu işlem %d adet öğeyi (%@) Çöp Sepetine taşıyacak.";
+"ok_action" = "Tamam";
+
+/* Sidebar */
+"disk_used" = "%@ dolu";
+"disk_free" = "%@ boş";
+
+/* Categories */
+"category_system_junk" = "Sistem Çöpü";
+"category_user_library" = "Kullanıcı Kütüphanesi";
+"category_downloads" = "İndirilenler";
+"category_desktop" = "Masaüstü";
+"category_documents" = "Belgeler";
+"category_applications" = "Uygulamalar";
+"category_other" = "Diğer";
+"category_system" = "Sistem";
+
+/* Category Descriptions */
+"cat_desc_system_junk" = "Sistem Verileri genellikle gereksiz önbellek dosyalarıyla doludur. Bunları güvenle silebilirsiniz.";
+"cat_desc_user_library" = "Uygulama verileri ve ayarları içerir. Teknik isimleri anlamak için Akıllı Kontrol'ü kullanın.";
+"cat_desc_downloads" = "İnternetten indirilen dosyalar. Unutulmuş büyük dosyaları bulmak için harika bir yer.";
+"cat_desc_desktop" = "Masaüstünüzdeki dosyalar. Çalışma alanınızı düzenleyin.";
+"cat_desc_documents" = "Kişisel belgeleriniz. Silmeden önce dikkatlice inceleyin.";
+"cat_desc_applications" = "Yüklü uygulamalar. Yer açmak için kullanmadığınız uygulamaları silin.";
+"cat_desc_other" = "Sisteminizdeki diğer çeşitli dosyalar.";
+"cat_desc_system" = "Sistem dosyaları ve önbellekler. Dikkatli işlem yapın.";
+"cat_desc_default" = "Bu konumdaki dosya ve klasörler.";
+
+/* Discard Section */
+"discard_section_title" = "Seçili Öğeler";
+"discard_title" = "Temizle";
+"no_items_selected" = "Öğe seçilmedi";
+"disk_used_suffix" = "dolu";
+"disk_free_suffix" = "boş";
+"delete_count_items" = "%d öğeyi sil";
+"more_items_count" = "+%d tane daha";
+
+/* Content Area */
+"home_breadcrumb" = "Ana Sayfa";
+"selected_count" = "%d seçildi";
+"smart_check" = "Akıllı Seçim";
+"clear_selection" = "Seçimi Temizle";
+"new_scan" = "Yeniden Tara";
+"loading_files" = "Dosyalar yükleniyor...";
+"no_items_found" = "Öğe bulunamadı";
+"empty_category_message" = "Bu kategori boş görünüyor";
+"col_name" = "İSİM";
+"col_status" = "DURUM";
+"col_modified" = "TARİH";
+"col_size" = "BOYUT";
+"grant_access_banner" = "Tam Disk Erişimi Ver";
+
+/* Welcome View */
+"professional_mac_care" = "Profesyonel Mac Temizliği";
+"hero_title" = "Mac'iniz en iyi\nperformansla çalışsın.";
+"hero_subtitle" = "Akıllı tarama sistemi, bilgisayarınızı yavaşlatan gereksiz dosyaları, kopyaları ve büyük dosyaları tespit eder.";
+"scanning_system" = "Sistem Taranıyor...";
+"analyzing_category" = "Analiz ediliyor: %@";
+"start_full_scan" = "Tam Tarama Başlat";
+"grant_full_disk_access" = "Tam Disk Erişimi Ver";
+
+/* Scan Tips */
+"tip_analyzing" = "Her klasör ve dosya analiz ediliyor...";
+"tip_speed" = "Tarama hızı disk boyutuna göre değişebilir";
+"tip_deep" = "Doğru sonuçlar için derinlemesine tarama";
+"tip_junk" = "Gereksiz dosyalar ve önbellekler bulunuyor...";
+"tip_large" = "Büyük disklerin taranması uzun sürebilir";
+
+/* Features Grid */
+"feat_smart_cleanup" = "Akıllı Temizlik";
+"feat_smart_cleanup_desc" = "Yapay zeka destekli çöp tespiti";
+"feat_fast_scan" = "Hızlı Tarama";
+"feat_fast_scan_desc" = "Hız için optimize edildi";
+"feat_safe_delete" = "Güvenli Silme";
+"feat_safe_delete_desc" = "Önemli dosyalarınızı asla kaybetmeyin";
+"feat_visual_analysis" = "Görsel Analiz";
+"feat_visual_analysis_desc" = "Neyin yer kapladığını görün";
+
+/* Update Banner */
+"new_version_available" = "Yeni Sürüm Mevcut";
+"see_whats_new" = "Yenilikleri gör";
+"update_now" = "Şimdi Güncelle";
+"whats_new_version" = "v%@ Sürümündeki Yenilikler";
+
+/* Menubar */
+"cpu_load" = "CPU Yükü";
+"ram_usage" = "RAM Kullanımı";
+"clean_ram" = "RAM Temizle";
+"optimizing" = "Optimize ediliyor...";
+"of_total_ram" = "/ %@";
+
+"disk_capacity_format" = "%@ boş / Toplam: %@";
+
+/* Analysis Status */
+"status_not_analyzed" = "Analiz edilmedi";
+"status_analyzing" = "Analiz ediliyor...";
+"status_safe" = "Güvenli";
+"status_review" = "İncele";
+"status_unknown" = "Bilinmiyor";
+"smart_check_results" = "Akıllı Kontrol Sonuçları";
+"no_feedback" = "Detaylı geri bildirim yok.";
+"label_consequences" = "Sonuçlar:";
+"label_safe_to_delete" = "Silinmesi güvenli mi:";
+"yes" = "Evet";
+"no" = "Hayır";
+"recommendation_manual" = "Öneri: Manuel inceleme tavsiye edilir.";
+
+/* Full Disk Access Banner */
+"fda_required_title" = "Tam Disk Erişimi Gerekli";
+"fda_required_desc" = "Korumalı klasörleri taramak için izin verin";
+"open_settings" = "Ayarları Aç";
+
+/* Bottom Panel */
+"tab_treemap" = "Harita";
+"tab_sunburst" = "Grafik";
+"tab_largest_files" = "Büyük Dosyalar";
+"label_items" = "Öğe";
+
+"category_containers" = "Uygulama Kapları";
+"category_media" = "Medya ve Fotoğraflar";

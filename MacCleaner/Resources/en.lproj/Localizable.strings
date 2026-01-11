@@ -1,64 +1,141 @@
-/* 
-  Localizable.strings
-  MacCleaner (Lustra)
+/* App General */
+"app_name" = "Lustra";
+"quit_app" = "Quit Lustra";
 
-  Enterprise-ready localization file
-  Copyright © 2026. All rights reserved.
-*/
+/* Main View */
+"are_you_sure_title" = "Are you sure?";
+"delete_action" = "Delete";
+"cancel_action" = "Cancel";
+"delete_item_confirmation" = "Are you sure you want to move '%@' to the Trash?";
+"delete_multiple_confirmation" = "This will move %d items (%@) to the Trash.";
+"ok_action" = "OK";
 
-// MARK: - General
-"app.name" = "Lustra";
-"app.tagline" = "Mac Storage Optimizer";
+/* Sidebar */
+"disk_used" = "%@ used";
+"disk_free" = "%@ free";
 
-// MARK: - Welcome View
-"welcome.title" = "Welcome to Lustra";
-"welcome.subtitle" = "Your intelligent Mac storage manager";
-"welcome.startScan" = "Start Full Scan";
-"welcome.scanDescription" = "Analyze your storage to find junk files and large items";
+/* Categories */
+"category_system_junk" = "System Junk";
+"category_user_library" = "User Library";
+"category_downloads" = "Downloads";
+"category_desktop" = "Desktop";
+"category_documents" = "Documents";
+"category_applications" = "Applications";
+"category_other" = "Other";
+"category_system" = "System";
 
-// MARK: - Scanning
-"scan.initializing" = "Initializing...";
-"scan.findingLargestFiles" = "Finding Largest Files...";
-"scan.complete" = "Scan Complete";
+/* Category Descriptions */
+"desc_system_junk" = "System Data is often full of confusing cache files. We've identified these as safe to remove to reclaim free space.";
+"desc_user_library" = "Contains app data and settings. Use Smart Check to translate technical names into plain English.";
+"desc_downloads" = "Files downloaded from the internet. Great place to find forgotten giants taking up space.";
+"desc_desktop" = "Files on your Desktop. Rapidly access and organize your workspace.";
+"desc_documents" = "Your personal documents. Review carefully before removing.";
+"desc_applications" = "Installed applications. Remove unused apps to free up space.";
+"desc_other" = "Miscellaneous files across your system.";
+"desc_system" = "System files and caches. Handle with care.";
+"desc_default" = "Files and folders in this location.";
 
-// MARK: - Categories
-"category.systemJunk" = "System Junk";
-"category.userLibrary" = "User Library";
-"category.downloads" = "Downloads";
-"category.containers" = "App Containers & Misc";
-"category.desktop" = "Desktop";
-"category.media" = "Media & Photos";
-"category.documents" = "Documents";
-"category.applications" = "Applications";
+/* Discard Section */
+"discard_section_title" = "Selected Items";
+"disk_used_suffix" = "used";
+"disk_free_suffix" = "free";
 
-// MARK: - Smart Check
-"smartCheck.title" = "Smart Check Results";
-"smartCheck.notAnalyzed" = "Not analyzed";
-"smartCheck.analyzing" = "Analyzing...";
-"smartCheck.safe" = "Safe";
-"smartCheck.review" = "Review";
-"smartCheck.unknown" = "Unknown";
-"smartCheck.consequences" = "Consequences:";
-"smartCheck.safeToDelete" = "Safe to delete:";
-"smartCheck.yes" = "Yes";
-"smartCheck.no" = "No";
-"smartCheck.recommendation" = "Recommendation: Manual review suggested.";
-"smartCheck.noFeedback" = "No detailed feedback provided.";
+/* Category Descriptions */
+"cat_desc_system_junk" = "System Data is often full of confusing cache files. We've identified these as safe to remove to reclaim free space.";
+"cat_desc_user_library" = "Contains app data and settings. Use Smart Check to translate technical names into plain English.";
+"cat_desc_downloads" = "Files downloaded from the internet. Great place to find forgotten giants taking up space.";
+"cat_desc_desktop" = "Files on your Desktop. Rapidly access and organize your workspace.";
+"cat_desc_documents" = "Your personal documents. Review carefully before removing.";
+"cat_desc_applications" = "Installed applications. Remove unused apps to free up space.";
+"cat_desc_other" = "Miscellaneous files across your system.";
+"cat_desc_system" = "System files and caches. Handle with care.";
+"cat_desc_default" = "Files and folders in this location.";
+"discard_title" = "Discard";
+"no_items_selected" = "No items selected";
+"empty_category_message" = "This category appears to be empty";
+"delete_count_items" = "Delete %d items";
+"more_items_count" = "+%d more";
 
-// MARK: - Actions
-"action.delete" = "Delete";
-"action.cancel" = "Cancel";
-"action.selectAll" = "Select All";
-"action.deselectAll" = "Deselect All";
-"action.analyze" = "Analyze";
-"action.refresh" = "Refresh";
+/* Content Area */
+"home_breadcrumb" = "Home";
+"selected_count" = "%d selected";
+"smart_check" = "Smart Check";
+"clear_selection" = "Clear Selection";
+"new_scan" = "New Scan";
+"loading_files" = "Loading files...";
+"no_items_found" = "No items found";
+"empty_category_message" = "This category appears to be empty";
+"col_name" = "Name";
+"col_status" = "Status";
+"col_modified" = "Date Modified";
+"col_size" = "Size";
+"grant_access_banner" = "Grant Full Disk Access";
 
-// MARK: - Confirmation
-"confirm.deleteTitle" = "Are you sure?";
-"confirm.deleteSingle" = "Are you sure you want to move '%@' to the Trash?";
-"confirm.deleteMultiple" = "This will move %d items (%@) to the Trash.";
+/* Welcome View */
+"professional_mac_care" = "Professional Mac Care";
+"hero_title" = "Keep your Mac\nrunning at its best.";
+"hero_subtitle" = "Intelligent scanning identifies junk, duplicates, and large files that are slowing down your system.";
+"scanning_system" = "Scanning System...";
+"analyzing_category" = "Analyzing: %@";
+"start_full_scan" = "Start Full Scan";
+"grant_full_disk_access" = "Grant Full Disk Access";
 
-// MARK: - Errors
-"error.apiMissing" = "Missing API Configuration";
-"error.analysisUnavailable" = "Analysis Service Unavailable";
-"error.tryAgain" = "Try again later";
+/* Scan Tips */
+"tip_analyzing" = "Analyzing every folder and file...";
+"tip_speed" = "Scan speed varies based on disk size";
+"tip_deep" = "Deep scanning for accurate results";
+"tip_junk" = "Finding junk files and caches...";
+"tip_large" = "Larger disks may take longer";
+
+/* Features Grid */
+"feat_smart_cleanup" = "Smart Cleanup";
+"feat_smart_cleanup_desc" = "AI-powered junk detection";
+"feat_fast_scan" = "Fast Scan";
+"feat_fast_scan_desc" = "Optimized for speed";
+"feat_safe_delete" = "Safe Delete";
+"feat_safe_delete_desc" = "Never lose important files";
+"feat_visual_analysis" = "Visual Analysis";
+"feat_visual_analysis_desc" = "See what takes space";
+
+/* Update Banner */
+"new_version_available" = "New Version Available";
+"see_whats_new" = "See what's new";
+"update_now" = "Update Now";
+"whats_new_version" = "What's New in v%@";
+
+/* Menubar */
+"cpu_load" = "CPU Load";
+"ram_usage" = "RAM Usage";
+"clean_ram" = "Clean RAM";
+"optimizing" = "Optimizing...";
+"of_total_ram" = "of %@";
+
+"disk_capacity_format" = "%@ available of %@";
+
+/* Analysis Status */
+"status_not_analyzed" = "Not analyzed";
+"status_analyzing" = "Analyzing...";
+"status_safe" = "Safe";
+"status_review" = "Review";
+"status_unknown" = "Unknown";
+"smart_check_results" = "Smart Check Results";
+"no_feedback" = "No detailed feedback provided.";
+"label_consequences" = "Consequences:";
+"label_safe_to_delete" = "Safe to delete:";
+"yes" = "Yes";
+"no" = "No";
+"recommendation_manual" = "Recommendation: Manual review suggested.";
+
+/* Full Disk Access Banner */
+"fda_required_title" = "Full Disk Access Required";
+"fda_required_desc" = "Grant access to scan protected folders";
+"open_settings" = "Open Settings";
+
+/* Bottom Panel */
+"tab_treemap" = "Treemap";
+"tab_sunburst" = "Sunburst";
+"tab_largest_files" = "Largest Files";
+"label_items" = "Items";
+
+"category_containers" = "App Containers & Misc";
+"category_media" = "Media & Photos";
