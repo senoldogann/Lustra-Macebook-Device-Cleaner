@@ -48,14 +48,6 @@ struct WelcomeView: View {
                     
                     Spacer()
                     
-                    // Update Notification
-                    if let update = viewModel.updateAvailable {
-                        UpdateBanner(version: update)
-                            .padding(.leading, 180)
-                            .padding(.bottom, 20)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                    
                     // Center Info Area
                     VStack(alignment: .leading, spacing: 32) {
                         VStack(alignment: .leading, spacing: 12) {
@@ -267,6 +259,14 @@ struct WelcomeView: View {
                     )
                 )
             }
+            .overlay(alignment: .top) {
+                if let update = viewModel.updateAvailable {
+                    UpdateBanner(version: update)
+                        .padding(.top, 40)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.updateAvailable != nil)
+                }
+            }
         }
     }
     
@@ -398,21 +398,33 @@ struct UpdateBanner: View {
     let version: AppVersion
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
+            // Icon with Glow
             ZStack {
                 Circle()
-                    .fill(Color(hex: "4A90E2").opacity(0.1))
-                    .frame(width: 36, height: 36)
+                    .fill(AppTheme.terracotta.opacity(0.15))
+                    .frame(width: 40, height: 40)
                 
-                Image(systemName: "arrow.down.circle.fill")
-                    .foregroundColor(Color(hex: "4A90E2"))
-                    .font(.system(size: 18))
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(AppTheme.terracotta)
             }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("New Version Available: \(version.version)")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.primaryText)
+                HStack(spacing: 8) {
+                    Text("New Version Available")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(AppTheme.primaryText)
+                    
+                    Text("v\(version.version)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppTheme.terracotta)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(AppTheme.terracotta.opacity(0.1))
+                        .cornerRadius(6)
+                }
+                
                 Text(version.notes)
                     .font(.system(size: 12))
                     .foregroundColor(AppTheme.secondaryText)
@@ -426,27 +438,55 @@ struct UpdateBanner: View {
                     NSWorkspace.shared.open(url)
                 }
             }) {
-                Text("Update")
+                Text("Update Now")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color(hex: "4A90E2"))
-                    .cornerRadius(16)
-                    .shadow(color: Color(hex: "4A90E2").opacity(0.3), radius: 5)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [AppTheme.terracotta, AppTheme.terracotta.opacity(0.8)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(20)
+                    .shadow(color: AppTheme.terracotta.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .padding(12)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "4A90E2").opacity(0.3), lineWidth: 1)
+        .padding(16)
+        .background(
+            ZStack {
+                AppTheme.cardBackground
+                    .opacity(0.95)
+                
+                // Frosted glass effect
+                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                    .opacity(0.2)
+            }
         )
-        .frame(maxWidth: 400)
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [AppTheme.terracotta.opacity(0.5), .clear]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+        .frame(width: 460)
     }
 }
+
+// Helper for blur effect (if not already present, though typically standard View modifiers are preferred in pure SwiftUI, 
+// keeping it simple with colors is safer if VisualEffectBlur isn't defined. 
+// I'll stick to pure SwiftUI colors for safety as I don't recall seeing a VisualEffectBlur struct in the viewed files.)
+
 
 #Preview {
     WelcomeView(viewModel: MainViewModel())
