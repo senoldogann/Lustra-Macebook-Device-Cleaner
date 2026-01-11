@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>OllamaAPIKey</key>
-	<string>16855db9b22e42938dca07191597f863.E9uOg3nb_weJQ0cvt4g2AXQ0</string>
+	<string>YOUR_API_KEY_HERE</string>
 	<key>OllamaAPIHost</key>
 	<string>https://ollama.com</string>
 	<key>OllamaModel</key>
