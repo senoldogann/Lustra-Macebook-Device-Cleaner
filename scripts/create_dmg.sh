@@ -10,9 +10,17 @@ APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
 echo "🚀 Starting Production Build for $APP_NAME..."
 
 # 1. Clean and Build in Release Mode
+# Allow CODE_SIGN_IDENTITY override from environment
+SIGNING_IDENTITY=${CODE_SIGN_IDENTITY:-"-"}
+REQUIRED_SIGNING=${CODE_SIGNING_REQUIRED:-"YES"}
+
+echo "🔑 Signing with: '$SIGNING_IDENTITY' (Required: $REQUIRED_SIGNING)"
+
 xcodebuild -scheme "$SCHEME_NAME" \
     -configuration Release \
     -derivedDataPath "$BUILD_DIR" \
+    CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+    CODE_SIGNING_REQUIRED="$REQUIRED_SIGNING" \
     clean build || { echo "❌ Build failed"; exit 1; }
 
 echo "✅ Build Successful!"
