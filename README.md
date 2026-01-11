@@ -24,6 +24,15 @@
 
 ---
 
+## 📥 Installation
+
+1.  Download the latest version from the **[Releases Page](https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/releases/latest)**.
+2.  Open `Lustra_Installer.dmg`.
+3.  Drag **Lustra** to your Applications folder.
+4.  Launch the app and enjoy!
+
+---
+
 ## 🚀 Key Features
 
 ### 🛡️ Smart Cleanup
