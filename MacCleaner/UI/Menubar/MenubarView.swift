@@ -16,8 +16,7 @@ struct MenubarView: View {
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    Spacer()
-                    Text("v1.3.0")
+                    Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.6))
                 }

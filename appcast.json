@@ -1,6 +1,6 @@
 {
-    "version": "1.4.0",
-    "title": "Lustra v1.4.0 Available",
-    "notes": "• Improved Smart Check UX: Direct API Key Entry 🪄\n• Fixed Sidebar Layout Issues 🛠️\n• Turkish Language Improvements 🇹🇷\n• Bug Fixes & Performance Improvements ✨",
+    "version": "1.4.1",
+    "title": "Lustra v1.4.1 Available",
+    "notes": "• Fix: Smart Check now correctly triggers analysis & API Key prompt 🪄\n• Fix: Dynamic Version Display (v1.4.1) 🏷️\n• Improved RAM Cleaning reliability ⚡\n• Turkish Localization fixes 🇹🇷",
     "downloadURL": "https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/releases/latest/download/Lustra_Installer.dmg"
 }

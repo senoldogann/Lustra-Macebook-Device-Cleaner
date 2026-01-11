@@ -486,7 +486,24 @@ struct PremiumHeaderView: View {
                         .foregroundColor(AppTheme.secondaryText)
                     
                     // Smart Check Button
-                    Button(action: { viewModel.analyzeSelectedItems() }) {
+                    // Logic: If analysis is needed (any selected item not safe/review/unknown), trigger analysis.
+                    // If all selected items have been analyzed, just re-select safe ones?
+                    // "Smart Check" generally implies "Do the Magic".
+                    // The best UX: Always try to analyze if not analyzed. 
+                    // If already analyzed, it acts as "Select Safe".
+                    Button(action: { 
+                        // If any item is not analyzed, we treat this as "Run Analysis"
+                        let needsAnalysis = viewModel.currentItems.filter { viewModel.selectedItems.contains($0.id) }
+                            .contains { $0.analysisStatus == .unknown }
+                        
+                        if needsAnalysis {
+                            viewModel.analyzeSelectedItems()
+                        } else {
+                            // If already analyzed, just refine selection to safe ones?
+                            // Or re-analyze? Let's assume re-analyze is safer/clearer "Check" action.
+                            viewModel.analyzeSelectedItems()
+                        }
+                    }) {
                         HStack(spacing: 6) {
                             if viewModel.isAnalyzing {
                                 ProgressView()
