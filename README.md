@@ -110,4 +110,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 <div align="center">
     <sub>Designed by Senol Dogan & Built with ❤️ for macOS</sub>
+        <sub>www.senoldogan.dev</sub>
 </div>
