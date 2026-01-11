@@ -24,21 +24,30 @@ class UpdateService: ObservableObject {
     }
     
     func checkForUpdates() {
-        URLSession.shared.dataTaskPublisher(for: updateURL)
-            .map(\.data)
-            .decode(type: AppVersion.self, decoder: JSONDecoder())
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { completion in
-                    if case .failure(let error) = completion {
-                        print("Update check failed: \(error)")
-                    }
-                },
-                receiveValue: { [weak self] versionInfo in
-                    self?.validateVersion(versionInfo)
+        print("DEBUG: Checking for updates at \(updateURL.absoluteString)")
+        
+        URLSession.shared.dataTask(with: updateURL) { data, response, error in
+            if let error = error {
+                print("DEBUG: Network error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = data, let rawString = String(data: data, encoding: .utf8) else {
+                print("DEBUG: No data received")
+                return
+            }
+            
+            print("DEBUG: Raw response: \(rawString)") // KEY DEBUG LINE
+            
+            do {
+                let versionInfo = try JSONDecoder().decode(AppVersion.self, from: data)
+                DispatchQueue.main.async {
+                    self.validateVersion(versionInfo)
                 }
-            )
-            .store(in: &cancellables)
+            } catch {
+                print("DEBUG: JSON Decode Error: \(error)")
+            }
+        }.resume()
     }
     
     private func validateVersion(_ remoteVersion: AppVersion) {
