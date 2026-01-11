@@ -114,10 +114,10 @@ struct ScanningAnimation: View {
                         .frame(width: 110, height: 110)
                         .scaleEffect(isScanning ? pulseScale : 1.0)
                     
-                    Image(systemName: isScanning ? "cpu.fill" : "internaldrive.fill")
+                    Image(systemName: isScanning ? "cpu" : "internaldrive")
                         .font(.system(size: 40))
-                        .foregroundColor(AppTheme.terracotta)
-                        .symbolEffect(.pulse, isActive: isScanning)
+                        .foregroundColor(.white)
+                        .scaleEffect(isScanning ? pulseScale : 1.0)
                     
                     // Orbiting Scanner Head
                     Circle()
