@@ -146,23 +146,57 @@ class UpdateService: ObservableObject {
     DMG_PATH=$2
     APP_NAME=$3
     DEST_PATH=$4
+    LOG_FILE="/tmp/lustra_update.log"
+
+    # Redirect output to log file
+    exec > "$LOG_FILE" 2>&1
+    
+    echo "Updater: Started at $(date)"
+    echo "Updater: PID=$OLD_PID, DMG=$DMG_PATH, APP=$APP_NAME, DEST=$DEST_PATH"
 
     # 1. Wait for host to exit
+    echo "Updater: Waiting for parent process $OLD_PID to die..."
     while kill -0 $OLD_PID 2>/dev/null; do sleep 0.5; done
+    echo "Updater: Parent process died."
 
     # 2. Mount DMG
     MOUNT_POINT="/Volumes/${APP_NAME}_Update_$(date +%s)"
+    echo "Updater: Mounting DMG to $MOUNT_POINT"
     hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse
-    if [ ! -d "$MOUNT_POINT" ]; then exit 1; fi
+    
+    if [ ! -d "$MOUNT_POINT" ]; then 
+        echo "Updater: Failed to mount DMG."
+        exit 1
+    fi
 
-    # 3. Swap App
+    # 3. Check Source App
+    SOURCE_APP="$MOUNT_POINT/$APP_NAME.app"
+    if [ ! -d "$SOURCE_APP" ]; then
+        echo "Updater: Source app not found at $SOURCE_APP"
+        hdiutil detach "$MOUNT_POINT" -force
+        exit 1
+    fi
+
+    # 4. Swap App
     TARGET_APP="$DEST_PATH/$APP_NAME.app"
+    echo "Updater: Removing old app at $TARGET_APP"
     rm -rf "$TARGET_APP"
-    cp -R "$MOUNT_POINT/$APP_NAME.app" "$DEST_PATH/"
+    
+    echo "Updater: Copying new app..."
+    cp -R "$SOURCE_APP" "$DEST_PATH/"
+    
+    # 5. Clear Constraints (Quarantine)
+    echo "Updater: Clearing quarantine attributes..."
+    xattr -cr "$TARGET_APP"
 
-    # 4. Cleanup & Relaunch
+    # 6. Cleanup & Relaunch
+    echo "Updater: Detaching DMG..."
     hdiutil detach "$MOUNT_POINT" -force
+    
+    echo "Updater: Relaunching app at $TARGET_APP"
     open "$TARGET_APP"
+    
+    echo "Updater: Done."
     exit 0
     """
 }
