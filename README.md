@@ -1,7 +1,9 @@
 <div align="center">
 
-# ✨ Lustra
-### Intelligent Device Care for macOS
+<img src="docs/assets/lustra_logo.png" width="200" alt="Lustra Logo">
+
+# Lustra
+### The Pinnacle of macOS Elegance & Performance
 
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138.svg?style=for-the-badge&logo=swift&logoColor=white)](https://developer.apple.com/swift/)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2014%2B-000000.svg?style=for-the-badge&logo=apple&logoColor=white)](https://www.apple.com/macos/)
@@ -10,7 +12,7 @@
 
 <br/>
 
-**Lustra** is a state-of-the-art macOS cleaning utility engineered for speed, safety, and simplicity. Built with pure SwiftUI and powered by advanced algorithms, it helps you reclaim disk space without compromising system stability.
+**Lustra** isn't just a cleaning tool; it's a statement. Engineered with precision and designed with an obsession for aesthetics, it breathes new life into your Mac. Experience the perfect harmony of power, safety, and visual luxury.
 
 <br/>
 
