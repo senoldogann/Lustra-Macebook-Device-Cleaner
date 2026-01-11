@@ -195,7 +195,8 @@ actor DiskScanner {
         "com.apple.CloudKit",
         "com.apple.ap.adprivacyd",
         "com.apple.homed",
-        "com.apple.Music" // Often causes issues if Music is open
+        "com.apple.Music", // Often causes issues if Music is open
+        "FamilyCircle" // System protected folder
     ]
 
     /// Get top-level items in a directory with their sizes
