@@ -14,10 +14,9 @@
 
 <br/>
 
+![Lustra Demo](docs/assets/lustra_demo.gif)
 
-https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/assets/lustra_demo.mov
-
-*(Video: Open `docs/assets/lustra_demo.mov` to view the demo)*
+*(This is a compressed GIF. For the full quality video, see `docs/assets/lustra_demo.mov`)*
 
 </div>
 
