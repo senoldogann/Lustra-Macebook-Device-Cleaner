@@ -8,8 +8,6 @@ actor DiskScanner {
     
     static let shared = DiskScanner()
     
-    private let fileManager = FileManager.default
-    
     /// Get the REAL user home directory (not sandbox container)
     nonisolated var realHomeDirectory: URL {
         // If we have a bookmark-resolved URL from PermissionManager, use it.
@@ -166,7 +164,7 @@ actor DiskScanner {
         var totalSize: Int64 = 0
         let keys: Set<URLResourceKey> = [.fileSizeKey, .isDirectoryKey]
         
-        guard let enumerator = fileManager.enumerator(
+        guard let enumerator = FileManager.default.enumerator(
             at: url,
             includingPropertiesForKeys: Array(keys),
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
@@ -203,12 +201,12 @@ actor DiskScanner {
     nonisolated func getItems(in url: URL, color: String = "4D4C48", limit: Int = 100) async -> [StorageItem] {
         print("DEBUG: Getting items for \(url.path)")
         
-        guard fileManager.isReadableFile(atPath: url.path) else { return [] }
+        guard FileManager.default.isReadableFile(atPath: url.path) else { return [] }
         
         let keys: Set<URLResourceKey> = [.fileSizeKey, .isDirectoryKey, .contentModificationDateKey]
         
         do {
-            let contents = try fileManager.contentsOfDirectory(
+            let contents = try FileManager.default.contentsOfDirectory(
                 at: url,
                 includingPropertiesForKeys: Array(keys),
                 options: [.skipsHiddenFiles]
@@ -274,9 +272,10 @@ actor DiskScanner {
             for searchPath in searchPaths {
                 group.addTask {
                     var files: [StorageItem] = []
-                    guard self.fileManager.isReadableFile(atPath: searchPath.path) else { return [] }
+                    let fileManager = FileManager.default
+                    guard fileManager.isReadableFile(atPath: searchPath.path) else { return [] }
                     
-                    guard let enumerator = self.fileManager.enumerator(
+                    guard let enumerator = fileManager.enumerator(
                         at: searchPath,
                         includingPropertiesForKeys: Array(keys),
                         options: [.skipsHiddenFiles, .skipsPackageDescendants]

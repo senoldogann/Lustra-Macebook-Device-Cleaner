@@ -7,7 +7,7 @@ struct MenubarView: View {
     
     var body: some View {
         ZStack {
-            AppTheme.mainBackground.ignoresSafeArea()
+            AppTheme.background.ignoresSafeArea()
             
             VStack(spacing: 16) {
                 // Header

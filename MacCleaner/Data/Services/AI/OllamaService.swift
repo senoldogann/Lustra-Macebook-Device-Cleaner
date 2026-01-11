@@ -24,15 +24,12 @@ actor OllamaService {
     private let defaultsKey = "OllamaAPIKey_UserOverride"
     
     private init() {
-        loadConfiguration()
-    }
-    
-    private func loadConfiguration() {
+        // Load configuration immediately
         // 1. Check User Override
         if let userKey = UserDefaults.standard.string(forKey: defaultsKey), !userKey.isEmpty {
             self.apiKey = userKey
             Logger.lifecycle.info("Using User Configured API Key")
-        } 
+        }
         // 2. Fallback to Plist
         else if let path = Bundle.main.path(forResource: "OllamaConfig", ofType: "plist"),
                 let dict = NSDictionary(contentsOfFile: path) as? [String: Any] {
