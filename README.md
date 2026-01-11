@@ -31,11 +31,17 @@
 3.  Drag **Lustra** to your Applications folder.
 4.  Launch the app and enjoy!
 
-> **Note:** If you see a warning saying *"Lustra can't be opened..."*:
-> 1.  Right-click (or Control-click) the app icon.
-> 2.  Select **Open**.
-> 3.  Click **Open** in the dialog box.
-> *(This happens because the app is not signed with a paid Apple Developer certificate yet.)*
+> **Note:** If you see a warning saying *"Lustra can't be opened..."* or only see a "Move to Trash" option:
+>
+> **Option 1 (Right Click):**
+> 1.  Right-click the app in Applications folder -> **Open**.
+> 2.  Click **Open** in the dialog.
+>
+> **Option 2 (Terminal - Recommended if Option 1 fails):**
+> Run this command in Terminal to remove the quarantine attribute:
+> ```bash
+> xattr -cr /Applications/Lustra.app
+> ```
 
 ---
 
