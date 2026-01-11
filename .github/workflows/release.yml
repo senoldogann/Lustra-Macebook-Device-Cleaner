@@ -1,0 +1,61 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: macos-15
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
+      # Note: For a real signed release, you need to set up certificates here.
+      # We will build an unsigned release for now, or use ad-hoc signing if configured locally.
+      
+      - name: Build Archive
+        run: |
+          xcodebuild archive \
+            -scheme "MacCleaner" \
+            -destination "generic/platform=macOS" \
+            -archivePath "build/Lustra.xcarchive" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Export .app
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "build/Lustra.xcarchive" \
+            -exportOptionsPlist "MacCleaner/Resources/ExportOptions.plist" \
+            -exportPath "build/Export" \
+            -allowProvisioningUpdates
+
+      - name: Create DMG
+        run: |
+          chmod +x scripts/create_dmg.sh
+          # Make sure the script looks for the app in the right place
+          # We might need to adjust the source path in the script call if it's hardcoded
+          ./scripts/create_dmg.sh "build/Export/Lustra.app" "build/Lustra_Installer.dmg"
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/Lustra_Installer.dmg
+            appcast.json
+          generate_release_notes: true
+          draft: false
+          prerelease: false

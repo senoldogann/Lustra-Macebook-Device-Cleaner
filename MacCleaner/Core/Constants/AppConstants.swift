@@ -15,7 +15,7 @@ enum AppConstants {
         /// Default Ollama Model
         static let defaultModel = "llama3"
         /// Default Ollama Base URL
-        static let defaultBaseURL = "http://localhost:11434/api/generate"
+        static let defaultBaseURL = "http://localhost:11434"
         /// Default Timeout
         static let timeout: TimeInterval = 60
     }

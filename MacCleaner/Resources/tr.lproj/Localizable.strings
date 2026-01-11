@@ -127,3 +127,8 @@
 
 "category_containers" = "Uygulama Kapları";
 "category_media" = "Medya ve Fotoğraflar";
+
+/* API Configuration */
+"api_key_required_title" = "Ollama API Anahtarı Gerekli";
+"api_key_required_message" = "Akıllı analiz özelliklerini kullanabilmek için lütfen Ollama API Anahtarınızı girin.";
+"save_action" = "Kaydet";

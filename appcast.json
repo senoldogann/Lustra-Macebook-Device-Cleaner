@@ -1,6 +1,6 @@
 {
-    "version": "1.3.0",
-    "title": "Lustra v1.3.0 Available",
-    "notes": "• Turkish Language Support (Türkçe Dil Desteği) 🇹🇷\n• New Menubar Utility (RAM Booster & System Monitor) ⚡\n• UI Polish & Bug Fixes 🎨\n• Improved Performance",
+    "version": "1.4.0",
+    "title": "Lustra v1.4.0 Available",
+    "notes": "• Improved Smart Check UX: Direct API Key Entry 🪄\n• Fixed Sidebar Layout Issues 🛠️\n• Turkish Language Improvements 🇹🇷\n• Bug Fixes & Performance Improvements ✨",
     "downloadURL": "https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner/releases/latest/download/Lustra_Installer.dmg"
 }

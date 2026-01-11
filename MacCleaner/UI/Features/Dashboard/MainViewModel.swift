@@ -67,6 +67,10 @@ final class MainViewModel: ObservableObject {
     
     @Published var updateAvailable: AppVersion?
     
+    // API Key Prompt State
+    @Published var showAPIKeySheet: Bool = false
+    @Published var apiKeyInput: String = ""
+    
     // MARK: - Initialization
     init() {
         // Initialize categories
@@ -213,6 +217,16 @@ final class MainViewModel: ObservableObject {
     
     func requestFullDiskAccess() {
         PermissionManager.shared.openSystemSettings()
+    }
+    
+    func saveAPIKey() async {
+        guard !apiKeyInput.isEmpty else { return }
+        await ollamaService.updateAPIKey(apiKeyInput)
+        await MainActor.run {
+            self.showAPIKeySheet = false
+            self.apiKeyInput = ""
+            // Re-trigger analysis if appropriate, but user can just click again
+        }
     }
     
     // MARK: - Public Methods
@@ -447,14 +461,27 @@ final class MainViewModel: ObservableObject {
     }
     
     func analyzeSelectedItems() {
-        isAnalyzing = true
-        
         Task {
+            // Check API Key
+            if await !ollamaService.isConfigured() {
+                await MainActor.run {
+                    self.showAPIKeySheet = true
+                }
+                return
+            }
+            
+            await MainActor.run {
+                self.isAnalyzing = true
+            }
+            
             let itemsToAnalyze = self.currentItems.filter { self.selectedItems.contains($0.id) }
             
             for item in itemsToAnalyze {
                 guard let index = currentItems.firstIndex(where: { $0.id == item.id }) else { continue }
-                currentItems[index].analysisStatus = .analyzing
+                
+                 await MainActor.run {
+                     currentItems[index].analysisStatus = .analyzing
+                 }
                 
                 let analysis = await ollamaService.analyzeFile(
                     name: item.name,
@@ -464,14 +491,18 @@ final class MainViewModel: ObservableObject {
                 )
                 
                 if let validIndex = self.currentItems.firstIndex(where: { $0.id == item.id }) {
-                    self.currentItems[validIndex].analysisStatus = analysis.status
-                    self.currentItems[validIndex].analysisDescription = analysis.description
-                    self.currentItems[validIndex].analysisConsequences = analysis.consequences // Map consequences
-                    self.currentItems[validIndex].safeToDelete = analysis.safeToDelete
+                     await MainActor.run {
+                        self.currentItems[validIndex].analysisStatus = analysis.status
+                        self.currentItems[validIndex].analysisDescription = analysis.description
+                        self.currentItems[validIndex].analysisConsequences = analysis.consequences
+                        self.currentItems[validIndex].safeToDelete = analysis.safeToDelete
+                     }
                 }
             }
             
-            isAnalyzing = false
+             await MainActor.run {
+                self.isAnalyzing = false
+             }
         }
     }
     

@@ -30,13 +30,25 @@ actor OllamaService {
             self.apiKey = userKey
             Logger.lifecycle.info("Using User Configured API Key")
         }
-        // 2. Fallback to Plist
-        else if let path = Bundle.main.path(forResource: "OllamaConfig", ofType: "plist"),
-                let dict = NSDictionary(contentsOfFile: path) as? [String: Any] {
+        
+        // 2. Load from Plist
+        if let path = Bundle.main.path(forResource: "OllamaConfig", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path) as? [String: Any] {
             
-            self.apiKey = dict["OllamaAPIKey"] as? String ?? ""
+            // Only set if not already set by User Override (though apiKey is redundant here, logic holds)
+            if self.apiKey.isEmpty {
+                self.apiKey = dict["OllamaAPIKey"] as? String ?? ""
+            }
             self.apiHost = dict["OllamaAPIHost"] as? String ?? AppConstants.AI.defaultBaseURL
             self.model = dict["OllamaModel"] as? String ?? AppConstants.AI.defaultModel
+        }
+        
+        // 3. Fallback Defaults (Crucial fix: ensure apiHost is never empty)
+        if self.apiHost.isEmpty {
+            self.apiHost = AppConstants.AI.defaultBaseURL
+        }
+        if self.model.isEmpty {
+            self.model = AppConstants.AI.defaultModel
         }
         
         if apiKey.isEmpty {
@@ -49,6 +61,11 @@ actor OllamaService {
         self.apiKey = newKey
         UserDefaults.standard.set(newKey, forKey: defaultsKey)
         Logger.lifecycle.info("Ollama API Key updated by user")
+    }
+    
+    /// Check if the service has a valid API key configured
+    func isConfigured() -> Bool {
+        !apiKey.isEmpty
     }
     
     private func sanitizeInput(_ input: String) -> String {

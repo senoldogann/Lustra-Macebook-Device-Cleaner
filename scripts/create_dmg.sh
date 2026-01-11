@@ -1,29 +1,39 @@
 #!/bin/bash
 set -e
 
+# Arguments:
+# $1 (Optional): Path to existing .app
+# $2 (Optional): Output Name for DMG
+
 APP_NAME="Lustra"
-SCHEME_NAME="MacCleaner"
-DMG_NAME="Lustra_Installer.dmg"
-BUILD_DIR="./build"
-APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
+DMG_NAME=${2:-"Lustra_Installer.dmg"}
+APP_PATH=${1}
 
-echo "🚀 Starting Production Build for $APP_NAME..."
-
-# 1. Clean and Build in Release Mode
-# Allow CODE_SIGN_IDENTITY override from environment
-SIGNING_IDENTITY=${CODE_SIGN_IDENTITY:-"-"}
-REQUIRED_SIGNING=${CODE_SIGNING_REQUIRED:-"YES"}
-
-echo "🔑 Signing with: '$SIGNING_IDENTITY' (Required: $REQUIRED_SIGNING)"
-
-xcodebuild -scheme "$SCHEME_NAME" \
-    -configuration Release \
-    -derivedDataPath "$BUILD_DIR" \
-    CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-    CODE_SIGNING_REQUIRED="$REQUIRED_SIGNING" \
-    clean build || { echo "❌ Build failed"; exit 1; }
-
-echo "✅ Build Successful!"
+if [ -z "$APP_PATH" ]; then
+    # No app path provided, perform full build
+    SCHEME_NAME="MacCleaner"
+    BUILD_DIR="./build"
+    APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
+    
+    echo "🚀 Starting Production Build for $APP_NAME..."
+    
+    # Allow CODE_SIGN_IDENTITY override from environment
+    SIGNING_IDENTITY=${CODE_SIGN_IDENTITY:-"-"}
+    REQUIRED_SIGNING=${CODE_SIGNING_REQUIRED:-"YES"}
+    
+    echo "🔑 Signing with: '$SIGNING_IDENTITY' (Required: $REQUIRED_SIGNING)"
+    
+    xcodebuild -scheme "$SCHEME_NAME" \
+        -configuration Release \
+        -derivedDataPath "$BUILD_DIR" \
+        CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+        CODE_SIGNING_REQUIRED="$REQUIRED_SIGNING" \
+        clean build || { echo "❌ Build failed"; exit 1; }
+        
+    echo "✅ Build Successful!"
+else
+    echo "📦 Using existing App at: $APP_PATH"
+fi
 
 # 2. Prepare staging area for DMG
 STAGING_DIR="./dmg_staging"
@@ -44,7 +54,5 @@ hdiutil create -volname "$APP_NAME Installer" \
 
 echo "🧹 Cleaning up..."
 rm -rf "$STAGING_DIR"
-# Optional: keep build dir or clean it
-# rm -rf "$BUILD_DIR"
 
 echo "✨ Production DMG Ready: $DMG_NAME"

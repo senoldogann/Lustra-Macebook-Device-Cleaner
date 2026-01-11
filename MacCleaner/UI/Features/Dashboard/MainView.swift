@@ -57,7 +57,11 @@ struct MainView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-}
+        .sheet(isPresented: $viewModel.showAPIKeySheet) {
+            APIKeyInputView(viewModel: viewModel)
+        }
+        }
+    }
 
 // MARK: - Premium Sidebar
 
@@ -288,42 +292,22 @@ struct PremiumDiscardSection: View {
                         Text(NSLocalizedString("discard_section_title", comment: ""))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(AppTheme.primaryText)
-                            .fixedSize() // Force horizontal layout
+                            .lineLimit(1)
+                            .layoutPriority(1)
                         
                         if viewModel.selectedItemsCount > 0 {
+                            Spacer()
+                            
                             Text(String(format: NSLocalizedString("selected_count", comment: ""), viewModel.selectedItemsCount))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(AppTheme.accent)
-                                .padding(.horizontal, 8)
+                                .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(AppTheme.accent.opacity(0.1))
                                 .cornerRadius(4)
-                            
-                            Button(action: { viewModel.autoSelectSafeItems() }) {
-                                Label(NSLocalizedString("smart_check", comment: ""), systemImage: "wand.and.stars")
-                                    .font(.system(size: 11))
-                                    .fixedSize()
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(AppTheme.accent)
-                            
-                            Button(action: { viewModel.clearSelection() }) {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(AppTheme.secondaryText)
-                            }
-                            .buttonStyle(.plain)
-                            .help(NSLocalizedString("clear_selection", comment: ""))
-                            .buttonStyle(.plain)
-                        }
-                        
-                        Spacer()
-                        
-                        if !viewModel.selectedItems.isEmpty {
-                            Text(viewModel.formattedSelectedSize)
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
-                                .foregroundColor(AppTheme.secondaryText)
-                                .fixedSize() // Prevent stacking
+                                .lineLimit(1)
+                        } else {
+                            Spacer()
                         }
                         
                         Image(systemName: "chevron.right")
@@ -382,31 +366,55 @@ struct PremiumDiscardSection: View {
                                 }
                             }
                             
-                            // Delete Button
-                            Button(action: { viewModel.confirmDelete() }) {
-                                HStack {
-                                    Image(systemName: "trash.fill")
-                                        .font(.system(size: 12))
-                                    Text(String(format: NSLocalizedString("delete_count_items", comment: ""), viewModel.selectedItemsCount))
-                                        .font(.system(size: 13, weight: .semibold))
+                            // Actions Row: Smart Check, Clear, Delete
+                            HStack(spacing: 8) {
+                                // Smart Check (Auto-Select Safe)
+                                Button(action: { viewModel.autoSelectSafeItems() }) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(AppTheme.accent)
+                                        .frame(width: 32, height: 32)
+                                        .background(AppTheme.background.opacity(0.5))
+                                        .clipShape(Circle())
                                 }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [AppTheme.accent, AppTheme.accent.opacity(0.8)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
+                                .buttonStyle(.plain)
+                                .help(NSLocalizedString("smart_check", comment: ""))
+                                
+                                // Clear Selection
+                                Button(action: { viewModel.clearSelection() }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(AppTheme.secondaryText)
+                                }
+                                .buttonStyle(.plain)
+                                .help(NSLocalizedString("clear_selection", comment: ""))
+                                
+                                // Delete Button
+                                Button(action: { viewModel.confirmDelete() }) {
+                                    HStack {
+                                        Image(systemName: "trash.fill")
+                                            .font(.system(size: 12))
+                                        Text(String(format: NSLocalizedString("delete_count_items", comment: ""), viewModel.selectedItemsCount))
+                                            .font(.system(size: 13, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [AppTheme.accent, AppTheme.accent.opacity(0.8)],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                )
                                             )
-                                        )
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .onHover { inside in
-                                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .onHover { inside in
+                                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                                }
                             }
                         }
                     }
@@ -1507,4 +1515,4 @@ struct PremiumChartTooltip: View {
     }
 }
 
-}
+
