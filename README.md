@@ -79,15 +79,6 @@ graph TD
 
 ---
 
-## 📦 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/senoldogann/Lustra-Macebook-Device-Cleaner.git
-   ```
-
-2. **Open in Xcode**
-   Double click `MacCleaner.xcodeproj`
 
 3. **Build & Run**
    Press `Cmd + R` to build and run the application.
