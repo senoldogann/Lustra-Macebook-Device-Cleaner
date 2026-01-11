@@ -62,6 +62,16 @@ Premium visualization tools to understand your storage usage at a glance.
 - **Sunburst Chart:** Interactive radial view of your file system.
 - **Treemap Integration:** Rectangular density visualization for identifying large blocks of data.
 
+### 🇹🇷 Turkish Language Support (New)
+Lustra now speaks your language!
+- **Full Localization:** The entire interface is available in Turkish.
+- **Auto-Detection:** Automatically adapts to your system language preference.
+
+### ⚡ Menubar Utility (New)
+Keep an eye on your system health without opening the main app.
+- **Live Stats:** Monitor CPU load and RAM usage in real-time.
+- **Quick Clean:** Free up RAM instantly with a single click from the menu bar.
+
 ---
 
 ## 🛠 Technology Stack
